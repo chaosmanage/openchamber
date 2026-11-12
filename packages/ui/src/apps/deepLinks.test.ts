@@ -14,11 +14,6 @@ describe('Usage provider deep-links for Android home widgets', () => {
     });
   });
 
-  test('recognizes manual refresh from either home-screen widget', () => {
-    expect(parseDeepLink('openchamber://widget-refresh')).toEqual({ type: 'widget-refresh' });
-    expect(parseDeepLink('https://example.com/widget-refresh')).toBeNull();
-  });
-
   test('keeps the ordinary Usage destination without a provider', () => {
     expect(parseDeepLink('openchamber://settings/usage')).toEqual({
       type: 'settings', section: 'usage',

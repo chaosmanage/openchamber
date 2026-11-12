@@ -4,7 +4,6 @@ import { isCapacitorApp } from '@/lib/platform';
 import { subscribeToNativeShortcutRequests } from '@/lib/nativeShortcutRequests';
 import { useProjectsStore } from '@/stores/useProjectsStore';
 import { useQuotaStore } from '@/stores/useQuotaStore';
-import { refreshNativeWidgetData } from './useNativeWidgetSync';
 import type { QuotaProviderId } from '@/types';
 import { useInputStore } from '@/sync/input-store';
 import { useSessionUIStore } from '@/sync/session-ui-store';
@@ -107,11 +106,6 @@ const execute = (intent: NavigationIntent): boolean => {
       handlers.openSessions();
       return true;
 
-    case 'widget-refresh':
-      // The deep-link receiver queues cold-start intents until connected.
-      // Read fresh server data, then write a new native widget snapshot.
-      void refreshNativeWidgetData();
-      return true;
 
     case 'view':
       if (!handlers.openView) return false;

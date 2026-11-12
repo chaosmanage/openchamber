@@ -48,7 +48,7 @@
              Status is never contingent on a nested bitmap overlay. -->
         <TextView android:id="@+id/widget_session_badge"
             android:layout_width="match_parent" android:layout_height="27dp"
-            android:gravity="center" android:textSize="12sp"
+            android:gravity="center" android:textSize="11sp" android:letterSpacing="0.04"
             android:textStyle="bold" android:maxLines="1"
             android:paddingLeft="3dp" android:paddingRight="3dp"
             android:background="@drawable/widget_session_status_bg"/>

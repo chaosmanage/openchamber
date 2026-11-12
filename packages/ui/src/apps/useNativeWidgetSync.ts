@@ -14,6 +14,8 @@ import { useGitStore } from '@/stores/useGitStore';
 
 type WidgetBridge = {
   update(args: { usage: string; sessions: string }): Promise<void>;
+  pendingRefresh(): Promise<{ requested: number; acknowledged: number }>;
+  acknowledgeRefresh(args: { requested: number }): Promise<void>;
 };
 
 const WidgetBridge = registerPlugin<WidgetBridge>('WidgetBridge');
@@ -184,6 +186,26 @@ export const useNativeWidgetSync = ({ enabled }: { enabled: boolean }): void => 
     const platform = typeof window === 'undefined' ? undefined
       : (window as typeof window & { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.();
     if (!enabled || platform !== 'android') return;
+    let checkingRefresh = false;
+    let nextRefreshAttemptAt = 0;
+    // The Activity records an incrementing request counter for every widget tap.
+    // Poll native local state while connected. appUrlOpen is not reliable for
+    // internal PendingIntents, and a cold launch can finish connecting later.
+    const checkManualRefresh = async () => {
+      if (disposed || checkingRefresh || Date.now() < nextRefreshAttemptAt) return;
+      checkingRefresh = true;
+      try {
+        const state = await WidgetBridge.pendingRefresh();
+        if (disposed || state.requested <= state.acknowledged) return;
+        await refreshNativeWidgetData();
+        if (!disposed) await WidgetBridge.acknowledgeRefresh({ requested: state.requested });
+      } catch (error) {
+        console.warn('[AndroidWidgets] Manual widget refresh failed:', error);
+        nextRefreshAttemptAt = Date.now() + 15_000;
+      } finally {
+        checkingRefresh = false;
+      }
+    };
     let disposed = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
     let writing = false;
@@ -205,6 +227,8 @@ export const useNativeWidgetSync = ({ enabled }: { enabled: boolean }): void => 
       useGlobalSessionStatusStore.subscribe(schedule),
     ];
     schedule();
+    void checkManualRefresh();
+    const manualRefreshPoll = setInterval(() => { void checkManualRefresh(); }, 2_000);
     void useQuotaStore.getState().ensureLoadedForRuntime().finally(schedule);
     const interval = setInterval(() => {
       void useQuotaStore.getState().ensureLoadedForRuntime({ refresh: true }).finally(schedule);
@@ -216,6 +240,7 @@ export const useNativeWidgetSync = ({ enabled }: { enabled: boolean }): void => 
       disposed = true;
       if (timer !== null) clearTimeout(timer);
       clearInterval(interval);
+      clearInterval(manualRefreshPoll);
       document.removeEventListener('visibilitychange', onVisible);
       for (const unsubscribe of listeners) unsubscribe();
     };

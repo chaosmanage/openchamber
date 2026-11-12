@@ -93,10 +93,17 @@ final class WidgetRenderer {
         view.setOnClickPendingIntent(R.id.widget_header,
             open(context, usage ? "openchamber://settings/usage" : "openchamber://sessions?filter=recent",
                 widgetId * 100));
-        // Intentional foreground refresh: credentials and server connections are
-        // owned by the OpenChamber WebView, not a background widget receiver.
+        // A real native Activity intent, NOT a deep link: custom-scheme
+        // appUrlOpen events are not guaranteed for an internal PendingIntent.
+        // MainActivity persists the tap until the connected WebView consumes it.
+        Intent refresh = new Intent(context, MainActivity.class);
+        refresh.setAction(MainActivity.ACTION_REFRESH_WIDGETS);
+        refresh.setData(Uri.parse("openchamber://widget/refresh/" + widgetId));
+        refresh.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP
+            | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         view.setOnClickPendingIntent(R.id.widget_refresh,
-            open(context, "openchamber://widget-refresh", widgetId * 1000 + 77));
+            PendingIntent.getActivity(context, widgetId * 1000 + 77, refresh,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         JSONArray rows = data.optJSONArray("rows");
         int count = rows == null ? 0 : rows.length();
         if (usage) {
@@ -462,15 +469,17 @@ final class WidgetRenderer {
                 : status.equals("Done") ? themeColor(palette, "success", GREEN)
                 : status.equals("Failed") ? themeColor(palette, "error", RED)
                 : themeColor(palette, "muted", MUTED);
-            String mark = status.equals("Running") ? "● " : status.equals("Retrying") ? "↻ "
-                : status.equals("Done") ? "✓ " : status.equals("Failed") ? "× " : "◷ ";
+
             // Highlight exceptions and newly completed turns. Once a completion
             // expires the session becomes Idle with no repetitive text chip,
             // giving its title the full available width.
             if ("Idle".equals(status)) {
                 row.setViewVisibility(R.id.widget_session_status_column, View.GONE);
             } else {
-                row.setTextViewText(R.id.widget_session_badge, mark + status);
+                // Explicit, legible status label beside the session name.
+                // Failed is shown as Error; Idle has no label at all.
+                row.setTextViewText(R.id.widget_session_badge,
+                    "Failed".equals(status) ? "ERROR" : status.toUpperCase(Locale.ROOT));
                 row.setTextColor(R.id.widget_session_badge, color);
             }
             // A low-saturation full-row tint complements the clear status tag,

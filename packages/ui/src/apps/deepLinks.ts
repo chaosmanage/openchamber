@@ -27,7 +27,6 @@ export type DeepLinkIntent =
   | { type: 'new-session'; directory?: string; projectId?: string; agent?: string; model?: string }
   | { type: 'sessions'; filter?: SessionsFilter }
   | { type: 'status' }
-  | { type: 'widget-refresh' }
   | { type: 'settings'; section?: string; providerId?: string }
   | { type: 'changes'; path?: string; staged?: boolean }
   | { type: 'view'; target: ViewTarget };
@@ -107,9 +106,6 @@ export function parseDeepLink(raw: string | null | undefined): DeepLinkIntent | 
 
     case 'status':
       return { type: 'status' };
-
-    case 'widget-refresh':
-      return { type: 'widget-refresh' };
 
     case 'settings': {
       const section = rest[0] || query.get('section') || undefined;
