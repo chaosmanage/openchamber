@@ -131,6 +131,38 @@ const sessionSnapshot = async () => {
   return { updated: updatedLabel(), rows };
 };
 
+// Active theme comes from the mounted OpenChamber app; the native widgets
+// display the last synchronized theme even across a cold app launch.
+let currentWidgetPalette: WidgetPalette = themePalette();
+let refreshInFlight: Promise<void> | null = null;
+
+/**
+ * Triggered by either widget's refresh action. The app is intentionally
+ * brought to the foreground because it owns authenticated connections to
+ * the remote server. Native RemoteViews do not persist credentials or poll.
+ */
+export const refreshNativeWidgetData = (): Promise<void> => {
+  if (refreshInFlight) return refreshInFlight;
+  const job = (async () => {
+    const [quotaResult, sessionsResult] = await Promise.allSettled([
+      useQuotaStore.getState().ensureLoadedForRuntime({ refresh: true }),
+      useGlobalSessionsStore.getState().refreshSessionHead(),
+    ]);
+    if (quotaResult.status === 'rejected') {
+      console.warn('[AndroidWidgets] Usage refresh failed:', quotaResult.reason);
+    }
+    if (sessionsResult.status === 'rejected' || sessionsResult.value === false) {
+      console.warn('[AndroidWidgets] Sessions refresh failed');
+    }
+    const data = await snapshot(currentWidgetPalette);
+    await WidgetBridge.update(data);
+  })();
+  refreshInFlight = job;
+  void job.finally(() => { if (refreshInFlight === job) refreshInFlight = null; })
+    .catch(() => undefined);
+  return job;
+};
+
 const snapshot = async (palette: WidgetPalette): Promise<{ usage: string; sessions: string }> => {
   // Same quota store and provider visibility/model preferences as Usage.
   const usage = createWidgetUsageSnapshot(useQuotaStore.getState());
@@ -147,6 +179,7 @@ const snapshot = async (palette: WidgetPalette): Promise<{ usage: string; sessio
 export const useNativeWidgetSync = ({ enabled }: { enabled: boolean }): void => {
   const activeTheme = useOptionalThemeSystem()?.currentTheme;
   const palette = React.useMemo(() => themePalette(activeTheme), [activeTheme]);
+  React.useEffect(() => { currentWidgetPalette = palette; }, [palette]);
   React.useEffect(() => {
     const platform = typeof window === 'undefined' ? undefined
       : (window as typeof window & { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.();

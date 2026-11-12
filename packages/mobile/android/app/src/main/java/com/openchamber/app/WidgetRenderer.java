@@ -86,12 +86,17 @@ final class WidgetRenderer {
         view.setTextColor(R.id.widget_section_label, primary);
         view.setTextColor(R.id.widget_subtitle, muted);
         view.setTextColor(R.id.widget_timestamp, muted);
+        view.setTextColor(R.id.widget_refresh, primary);
         if (usage) view.setTextColor(R.id.widget_page_next, primary);
         else view.setTextColor(R.id.widget_new_session, light ? Color.WHITE : 0xff120f0e);
 
         view.setOnClickPendingIntent(R.id.widget_header,
             open(context, usage ? "openchamber://settings/usage" : "openchamber://sessions?filter=recent",
                 widgetId * 100));
+        // Intentional foreground refresh: credentials and server connections are
+        // owned by the OpenChamber WebView, not a background widget receiver.
+        view.setOnClickPendingIntent(R.id.widget_refresh,
+            open(context, "openchamber://widget-refresh", widgetId * 1000 + 77));
         JSONArray rows = data.optJSONArray("rows");
         int count = rows == null ? 0 : rows.length();
         if (usage) {
