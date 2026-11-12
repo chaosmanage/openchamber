@@ -425,6 +425,7 @@ final class WidgetRenderer {
                 : status.equals("Done") ? "✓ " : status.equals("Failed") ? "× " : "◷ ";
             row.setTextViewText(R.id.widget_session_badge, mark + status);
             row.setTextColor(R.id.widget_session_badge, color);
+            row.setImageViewBitmap(R.id.widget_session_status_surface, statusPill(context, color, light));
             // Color always means status, never a random per-project hash.
             row.setInt(R.id.widget_session_accent, "setBackgroundColor", color);
             row.setTextViewText(R.id.widget_session_name, clean(item.optString("name"), 90));
@@ -472,6 +473,30 @@ final class WidgetRenderer {
             }
             root.addView(R.id.widget_rows, row);
         }
+    }
+
+    /** Compact, rounded status chip with a meaningful color-matched fill. */
+    private static Bitmap statusPill(Context context, int accent, boolean light) {
+        float density = context.getResources().getDisplayMetrics().density;
+        int width = Math.max(78, Math.round(78 * density));
+        int height = Math.max(29, Math.round(29 * density));
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        int surface = light ? 0xfff3f2f0 : 0xff1b1918;
+        int fill = Color.rgb(
+            Math.round(Color.red(surface) * 0.74f + Color.red(accent) * 0.26f),
+            Math.round(Color.green(surface) * 0.74f + Color.green(accent) * 0.26f),
+            Math.round(Color.blue(surface) * 0.74f + Color.blue(accent) * 0.26f));
+        float radius = 10f * density;
+        RectF bounds = new RectF(1f, 1f, width - 1f, height - 1f);
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setColor(fill);
+        canvas.drawRoundRect(bounds, radius, radius, paint);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(Math.max(1f, density));
+        paint.setColor(Color.argb(150, Color.red(accent), Color.green(accent), Color.blue(accent)));
+        canvas.drawRoundRect(bounds, radius, radius, paint);
+        return bitmap;
     }
 
     private static String clean(String raw, int limit) {

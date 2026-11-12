@@ -44,13 +44,16 @@
     <LinearLayout android:layout_width="78dp"
         android:layout_height="62dp" android:layout_marginLeft="6dp"
         android:gravity="top|right" android:orientation="vertical">
-        <TextView android:id="@+id/widget_session_badge"
-            android:layout_width="match_parent" android:layout_height="29dp"
-            android:gravity="center" android:textSize="11sp"
-            android:textStyle="bold" android:maxLines="1"
-            android:paddingLeft="4dp" android:paddingRight="4dp"
-            android:paddingTop="7dp" android:paddingBottom="7dp"
-            android:background="@drawable/widget_session_status_bg"/>
+        <FrameLayout android:layout_width="match_parent" android:layout_height="29dp">
+            <ImageView android:id="@+id/widget_session_status_surface"
+                android:layout_width="match_parent" android:layout_height="match_parent"
+                android:contentDescription="Session status"/>
+            <TextView android:id="@+id/widget_session_badge"
+                android:layout_width="match_parent" android:layout_height="match_parent"
+                android:gravity="center" android:textSize="11sp"
+                android:textStyle="bold" android:maxLines="1"
+                android:paddingLeft="4dp" android:paddingRight="4dp"/>
+        </FrameLayout>
         <TextView android:id="@+id/widget_session_agent"
             android:layout_width="match_parent" android:layout_height="26dp"
             android:layout_marginTop="5dp"
