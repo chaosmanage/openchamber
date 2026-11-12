@@ -3,9 +3,9 @@
     android:id="@+id/widget_session_root"
     android:layout_width="match_parent" android:layout_height="wrap_content"
     android:gravity="center_vertical" android:orientation="horizontal"
-    android:minHeight="77dp" android:paddingTop="7dp" android:paddingBottom="7dp">
+    android:minHeight="59dp" android:paddingTop="3dp" android:paddingBottom="3dp">
     <TextView android:id="@+id/widget_session_accent"
-        android:layout_width="3dp" android:layout_height="45dp"
+        android:layout_width="3dp" android:layout_height="39dp"
         android:background="#89919E"/>
     <LinearLayout android:layout_width="0dp" android:layout_weight="1"
         android:layout_height="wrap_content" android:layout_marginLeft="9dp"
@@ -16,11 +16,11 @@
             android:textStyle="bold" android:textSize="14sp" android:textColor="#44443d"/>
         <TextView android:id="@+id/widget_session_project"
             android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="3dp" android:ellipsize="end" android:maxLines="1"
+            android:layout_marginTop="2dp" android:ellipsize="end" android:maxLines="1"
             android:textSize="11sp" android:textColor="#696960"/>
         <LinearLayout android:id="@+id/widget_session_gitrow"
             android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="4dp" android:orientation="horizontal"
+            android:layout_marginTop="3dp" android:orientation="horizontal"
             android:gravity="center_vertical" android:visibility="gone">
             <TextView android:id="@+id/widget_session_github"
                 android:layout_width="0dp" android:layout_weight="1"
@@ -42,9 +42,9 @@
         </LinearLayout>
     </LinearLayout>
     <LinearLayout android:layout_width="78dp"
-        android:layout_height="62dp" android:layout_marginLeft="6dp"
+        android:layout_height="51dp" android:layout_marginLeft="6dp"
         android:gravity="top|right" android:orientation="vertical">
-        <FrameLayout android:layout_width="match_parent" android:layout_height="29dp">
+        <FrameLayout android:layout_width="match_parent" android:layout_height="25dp">
             <ImageView android:id="@+id/widget_session_status_surface"
                 android:layout_width="match_parent" android:layout_height="match_parent"
                 android:contentDescription="Session status"/>
@@ -55,11 +55,11 @@
                 android:paddingLeft="4dp" android:paddingRight="4dp"/>
         </FrameLayout>
         <TextView android:id="@+id/widget_session_agent"
-            android:layout_width="match_parent" android:layout_height="26dp"
-            android:layout_marginTop="5dp"
+            android:layout_width="match_parent" android:layout_height="23dp"
+            android:layout_marginTop="3dp"
             android:ellipsize="end" android:maxLines="1"
             android:paddingLeft="5dp" android:paddingRight="5dp"
-            android:paddingTop="4dp" android:paddingBottom="4dp"
+            android:paddingTop="2dp" android:paddingBottom="2dp"
             android:gravity="center"
             android:textColor="#b35017" android:textSize="10sp"
             android:background="@drawable/widget_session_agent_bg_light"

@@ -3,11 +3,11 @@
     android:id="@+id/widget_root"
     android:layout_width="match_parent" android:layout_height="match_parent"
     android:orientation="vertical" android:background="@drawable/widget_background"
-    android:padding="12dp">
+    android:padding="10dp">
     <LinearLayout android:id="@+id/widget_header"
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:gravity="center_vertical" android:orientation="horizontal"
-        android:paddingBottom="7dp">
+        android:paddingBottom="4dp">
         <ImageView android:layout_width="30dp" android:layout_height="30dp"
             android:src="@mipmap/ic_launcher_round" android:contentDescription="OpenChamber"/>
         <LinearLayout android:layout_width="0dp" android:layout_weight="1"
@@ -16,31 +16,32 @@
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:id="@+id/widget_brand" android:text="OpenChamber" android:textStyle="bold"
                 android:textColor="#dbd7cc" android:textSize="14sp"/>
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:id="@+id/widget_section_label" android:text="SESSIONS" android:textStyle="bold"
-                android:letterSpacing="0.11" android:textColor="#da7c47" android:textSize="10sp"/>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:id="@+id/widget_section_label" android:text="SESSIONS" android:textStyle="bold"
+                    android:letterSpacing="0.11" android:textColor="#da7c47" android:textSize="10sp"/>
+                <TextView android:id="@+id/widget_subtitle"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginLeft="5dp"
+                    android:textColor="#89867c" android:textSize="10sp"/>
+            </LinearLayout>
         </LinearLayout>
-        <TextView android:id="@+id/widget_subtitle"
+        <TextView android:id="@+id/widget_new_session"
             android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:textColor="#89867c" android:textSize="11sp"/>
+            android:minWidth="88dp" android:gravity="center"
+            android:paddingLeft="8dp" android:paddingRight="8dp"
+            android:paddingTop="8dp" android:paddingBottom="8dp"
+            android:background="@drawable/widget_new_button"
+            android:text="+ New" android:textStyle="bold"
+            android:textSize="12sp" android:textColor="#120f0e"/>
     </LinearLayout>
     <LinearLayout android:id="@+id/widget_rows"
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:orientation="vertical"/>
     <LinearLayout android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1" android:orientation="vertical"/>
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:orientation="horizontal" android:gravity="center_vertical"
-        android:paddingTop="7dp">
-        <TextView android:id="@+id/widget_timestamp"
-            android:layout_width="0dp" android:layout_weight="1"
-            android:layout_height="wrap_content" android:text="Not synced"
-            android:textColor="#89867c" android:textSize="10sp"/>
-        <TextView android:id="@+id/widget_new_session"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:paddingLeft="13dp" android:paddingRight="13dp"
-            android:paddingTop="9dp" android:paddingBottom="9dp"
-            android:background="@drawable/widget_new_button"
-            android:text="+ New session" android:textStyle="bold"
-            android:textSize="13sp" android:textColor="#120f0e"/>
-    </LinearLayout>
+    <TextView android:id="@+id/widget_timestamp"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="3dp" android:text="Not synced"
+        android:textColor="#89867c" android:textSize="10sp"/>
 </LinearLayout>

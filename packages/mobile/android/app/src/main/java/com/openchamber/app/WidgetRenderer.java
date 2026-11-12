@@ -231,6 +231,13 @@ final class WidgetRenderer {
                        : (light ? R.layout.widget_quota_row_light : R.layout.widget_quota_row));
             line.setTextViewText(R.id.quota_provider_initial, providerInitial(id, name));
             line.setTextViewText(R.id.quota_provider_name, name);
+            // The default 12sp wraps just the final 'y' of Antigravity on
+            // ~4-column Android widgets. Use a single condensed 10sp label.
+            if (id.contains("antigravity")) {
+                line.setTextViewTextSize(R.id.quota_provider_name,
+                    android.util.TypedValue.COMPLEX_UNIT_SP, 10f);
+                line.setInt(R.id.quota_provider_name, "setMaxLines", 1);
+            }
             line.setTextColor(R.id.quota_provider_name,
                 themeColor(palette, "foreground", light ? 0xff44443d : 0xffdbd7cc));
             line.setTextColor(R.id.quota_provider_initial, providerColor(id));
@@ -406,7 +413,9 @@ final class WidgetRenderer {
 
     private static void sessionRows(Context context, RemoteViews root, JSONArray sessions,
                                     int widgetId, int heightDp, JSONObject palette) {
-        int maxRows = Math.min(6, Math.max(2, (heightDp - 92) / 78));
+        // Header contains + New; footer is a single sync timestamp. Never force
+        // two rows into a smaller launcher slot if only one fits.
+        int maxRows = Math.min(6, Math.max(1, (heightDp - 69) / 62));
         root.setTextViewText(R.id.widget_subtitle,
             Math.min(maxRows, sessions.length()) + "/" + sessions.length());
         for (int i = 0; i < Math.min(maxRows, sessions.length()); i++) {
@@ -423,9 +432,15 @@ final class WidgetRenderer {
                 : themeColor(palette, "muted", MUTED);
             String mark = status.equals("Running") ? "● " : status.equals("Retrying") ? "↻ "
                 : status.equals("Done") ? "✓ " : status.equals("Failed") ? "× " : "◷ ";
-            row.setTextViewText(R.id.widget_session_badge, mark + status);
-            row.setTextColor(R.id.widget_session_badge, color);
-            row.setImageViewBitmap(R.id.widget_session_status_surface, statusPill(context, color, light));
+            if ("Recent".equals(status)) {
+                row.setViewVisibility(R.id.widget_session_badge, View.INVISIBLE);
+                row.setViewVisibility(R.id.widget_session_status_surface, View.INVISIBLE);
+            } else {
+                row.setTextViewText(R.id.widget_session_badge, mark + status);
+                row.setTextColor(R.id.widget_session_badge, color);
+                row.setImageViewBitmap(R.id.widget_session_status_surface,
+                    statusPill(context, color, light));
+            }
             // Color always means status, never a random per-project hash.
             row.setInt(R.id.widget_session_accent, "setBackgroundColor", color);
             row.setTextViewText(R.id.widget_session_name, clean(item.optString("name"), 90));
@@ -479,7 +494,7 @@ final class WidgetRenderer {
     private static Bitmap statusPill(Context context, int accent, boolean light) {
         float density = context.getResources().getDisplayMetrics().density;
         int width = Math.max(78, Math.round(78 * density));
-        int height = Math.max(29, Math.round(29 * density));
+        int height = Math.max(25, Math.round(25 * density));
         Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         int surface = light ? 0xfff3f2f0 : 0xff1b1918;
