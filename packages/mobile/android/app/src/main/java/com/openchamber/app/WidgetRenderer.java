@@ -457,8 +457,6 @@ final class WidgetRenderer {
             // observed outcomes become Done/Failed, never an inferred success.
             row.setTextViewText(R.id.widget_session_badge, status.equals("Idle") ? "Idle" : mark + status);
             row.setTextColor(R.id.widget_session_badge, color);
-            row.setImageViewBitmap(R.id.widget_session_status_surface,
-                statusPill(context, color, light));
             // A low-saturation full-row tint complements the clear status tag,
             // instead of relying on a thin colored stripe as the only signal.
             int base = light ? 0xfff3f2f0 : 0xff1b1918;
@@ -518,27 +516,6 @@ final class WidgetRenderer {
             Math.round(Color.red(base) * other + Color.red(accent) * weight),
             Math.round(Color.green(base) * other + Color.green(accent) * weight),
             Math.round(Color.blue(base) * other + Color.blue(accent) * weight));
-    }
-
-    /** Compact, rounded status chip with a meaningful color-matched fill. */
-    private static Bitmap statusPill(Context context, int accent, boolean light) {
-        float density = context.getResources().getDisplayMetrics().density;
-        int width = Math.max(88, Math.round(88 * density));
-        int height = Math.max(25, Math.round(25 * density));
-        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bitmap);
-        int surface = light ? 0xfff3f2f0 : 0xff1b1918;
-        int fill = blendColor(surface, accent, 0.38f);
-        float radius = 10f * density;
-        RectF bounds = new RectF(1f, 1f, width - 1f, height - 1f);
-        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paint.setColor(fill);
-        canvas.drawRoundRect(bounds, radius, radius, paint);
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(Math.max(1f, density));
-        paint.setColor(Color.argb(150, Color.red(accent), Color.green(accent), Color.blue(accent)));
-        canvas.drawRoundRect(bounds, radius, radius, paint);
-        return bitmap;
     }
 
     private static String clean(String raw, int limit) {
