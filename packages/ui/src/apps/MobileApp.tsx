@@ -1322,7 +1322,7 @@ function MobileAppContent({ apis }: MobileAppProps) {
   // (document.hasFocus() is unreliable) and leaked while the app was open; the in-app SSE
   // notification dispatch is no-op'd for native in renderMobileApp.
   useNativePushRegistration({ enabled: isNativeMobileApp && isConnected });
-  useNativeWidgetSync({ enabled: isNativeMobileApp && isConnected });
+  useNativeWidgetSync({ enabled: isNativeMobileApp && isConnected && isInitialized });
   // Single native deep-link entry point: notification taps AND the openchamber:// URL
   // scheme (widgets, Live Activities, external links). Registered unconditionally so a
   // cold-launch tap/open isn't lost on the connect/splash screen; intents stash until

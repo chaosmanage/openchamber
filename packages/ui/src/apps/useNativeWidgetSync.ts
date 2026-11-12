@@ -86,7 +86,9 @@ const snapshot = () => {
  */
 export const useNativeWidgetSync = ({ enabled }: { enabled: boolean }): void => {
   React.useEffect(() => {
-    if (!enabled || typeof window === 'undefined' || window.Capacitor?.getPlatform?.() !== 'android') return;
+    const platform = typeof window === 'undefined' ? undefined
+      : (window as typeof window & { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.();
+    if (!enabled || platform !== 'android') return;
     let disposed = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const update = () => {
@@ -104,8 +106,10 @@ export const useNativeWidgetSync = ({ enabled }: { enabled: boolean }): void => 
       useGlobalSessionStatusStore.subscribe(schedule),
     ];
     schedule();
+    // The widget itself counts as a quota consumer even when Usage is not open.
+    void useQuotaStore.getState().ensureLoadedForRuntime().finally(schedule);
     const interval = setInterval(() => {
-      void useQuotaStore.getState().ensureLoadedForRuntime({ refresh: true, visibleOnly: true })
+      void useQuotaStore.getState().ensureLoadedForRuntime({ refresh: true })
         .finally(schedule);
       schedule();
     }, 3 * 60 * 1000);
