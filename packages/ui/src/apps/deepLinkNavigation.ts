@@ -198,6 +198,9 @@ export const useDeepLinkSource = (options: { ready: boolean }): void => {
           return;
         }
         cleanup.push(() => void handle.remove());
+        // Widget shortcuts may cold-launch the app, before appUrlOpen listeners exist.
+        const initial = await App.getLaunchUrl().catch(() => null);
+        if (!disposed && initial?.url) applyDeepLinkUrl(initial.url);
       })
       .catch(() => undefined);
 
