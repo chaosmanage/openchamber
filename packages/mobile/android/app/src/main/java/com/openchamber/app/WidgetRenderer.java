@@ -165,8 +165,8 @@ final class WidgetRenderer {
         boolean narrow = widgetWidth(context, widgetId) < 300;
         // Reserve actual header, footer, and launcher inset; use enough height
         // for 2 legible rings and their two-line labels without clipping.
-        final int rowHeight = narrow ? 90 : 64;
-        final int visibleRows = Math.max(1, Math.min(8, (heightDp - 70) / rowHeight));
+        final int rowHeight = narrow ? 90 : 67;
+        final int visibleRows = Math.max(1, Math.min(8, (heightDp - 80) / rowHeight));
         List<QuotaLine> lines = quotaLines(groups);
         if (lines.isEmpty()) return;
         int pages = (lines.size() + visibleRows - 1) / visibleRows;
