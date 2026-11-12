@@ -4,7 +4,7 @@
     android:layout_width="match_parent" android:layout_height="wrap_content"
     android:gravity="center_vertical" android:orientation="horizontal"
     android:minHeight="63dp" android:paddingTop="7dp" android:paddingBottom="7dp">
-    <View android:id="@+id/widget_session_accent"
+    <TextView android:id="@+id/widget_session_accent"
         android:layout_width="3dp" android:layout_height="42dp"
         android:background="#8E7BB8"/>
     <LinearLayout android:layout_width="0dp" android:layout_weight="1"
