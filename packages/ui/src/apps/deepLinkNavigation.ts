@@ -198,6 +198,9 @@ export const useDeepLinkSource = (options: { ready: boolean }): void => {
           return;
         }
         cleanup.push(() => void handle.remove());
+        // Homescreen widget PendingIntents may cold-start before this listener.
+        const initial = await App.getLaunchUrl().catch(() => null);
+        if (!disposed && initial?.url) applyDeepLinkUrl(initial.url);
       })
       .catch(() => undefined);
 

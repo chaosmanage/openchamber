@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="@drawable/widget_background"
+    android:padding="10dp">
+    <LinearLayout android:id="@+id/widget_header"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center_vertical" android:orientation="horizontal"
+        android:paddingBottom="4dp">
+        <ImageView android:layout_width="30dp" android:layout_height="30dp"
+            android:src="@mipmap/ic_launcher_round" android:contentDescription="OpenChamber"/>
+        <LinearLayout android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="wrap_content" android:orientation="vertical"
+            android:layout_marginLeft="7dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:id="@+id/widget_brand" android:text="OpenChamber" android:textStyle="bold"
+                android:textColor="#dbd7cc" android:textSize="14sp"/>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:id="@+id/widget_section_label" android:text="SESSIONS" android:textStyle="bold"
+                    android:letterSpacing="0.11" android:textColor="#da7c47" android:textSize="10sp"/>
+                <TextView android:id="@+id/widget_subtitle"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginLeft="5dp"
+                    android:textColor="#89867c" android:textSize="10sp"/>
+            </LinearLayout>
+        </LinearLayout>
+        <TextView android:id="@+id/widget_new_session"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:minWidth="88dp" android:gravity="center"
+            android:paddingLeft="8dp" android:paddingRight="8dp"
+            android:paddingTop="8dp" android:paddingBottom="8dp"
+            android:background="@drawable/widget_new_button"
+            android:text="+ New" android:textStyle="bold"
+            android:textSize="12sp" android:textColor="#120f0e"/>
+    </LinearLayout>
+    <!-- The scrollable collection owns the remaining height, not the footer. -->
+    <ListView android:id="@+id/widget_sessions_list"
+        android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1"
+        android:divider="@android:color/transparent" android:dividerHeight="0dp"
+        android:scrollbars="vertical" android:fadeScrollbars="true"
+        android:background="@android:color/transparent"/>
+    <TextView android:id="@+id/widget_sessions_empty"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:visibility="gone" android:padding="8dp"
+        android:text="Open OpenChamber to sync"
+        android:textColor="#89867c" android:textSize="11sp"/>
+    <TextView android:id="@+id/widget_timestamp"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="3dp" android:text="Not synced"
+        android:textColor="#89867c" android:textSize="10sp"/>
+</LinearLayout>
