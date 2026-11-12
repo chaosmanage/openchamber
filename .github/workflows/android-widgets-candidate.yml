@@ -1,0 +1,62 @@
+name: Android Widgets Candidate Test APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Test quota snapshot independent of SDK extensions
+        run: bun test packages/ui/src/apps/widgetUsageSnapshot.test.ts
+      - name: Lint mobile
+        run: bun run lint:mobile
+      # This checkout-only transform keeps the upstream PR clean:
+      # original package ID and Firebase settings remain unmodified there.
+      # The local test app installs alongside official OpenChamber.
+      - name: Use side-by-side identity for testing only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('packages/mobile/android/app/build.gradle')
+          s=p.read_text()
+          assert 'applicationId "com.openchamber.app"' in s
+          s=s.replace('applicationId "com.openchamber.app"', 'applicationId "com.openchamber.app.sdktest"', 1)
+          s=s.replace('if (servicesJSON.text) {', 'if (false && servicesJSON.text) {', 1)
+          p.write_text(s)
+          p=Path('packages/mobile/capacitor.config.json')
+          s=p.read_text().replace('"appId": "com.openchamber.app"','"appId": "com.openchamber.app.sdktest"')
+          s=s.replace('"appName": "OpenChamber"','"appName": "OpenChamber Widgets Test"')
+          p.write_text(s)
+          p=Path('packages/mobile/android/app/src/main/res/values/strings.xml')
+          s=p.read_text().replace('<string name="app_name">OpenChamber</string>', '<string name="app_name">OpenChamber Widgets Test</string>')
+          s=s.replace('<string name="title_activity_main">OpenChamber</string>','<string name="title_activity_main">OpenChamber Widgets Test</string>')
+          p.write_text(s)
+          PY
+      - name: Build candidate debug APK
+        shell: bash
+        run: |
+          export OPENCHAMBER_ANDROID_VERSION_CODE="$((100 + GITHUB_RUN_NUMBER))"
+          export OPENCHAMBER_ANDROID_VERSION_NAME="2.7.0-widgets-test.${GITHUB_RUN_NUMBER}"
+          bun run mobile:build:android:debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OpenChamber-Widgets-Candidate
+          path: packages/mobile/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
