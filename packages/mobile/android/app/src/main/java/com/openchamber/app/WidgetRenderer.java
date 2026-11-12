@@ -103,9 +103,16 @@ final class WidgetRenderer {
                     line.setTextViewText(R.id.quota_provider_initial, providerInitial(id, name));
                     line.setTextViewText(R.id.quota_provider_name, name);
                     line.setTextColor(R.id.quota_provider_initial, providerColor(id));
+                    int icon = providerLogo(id);
+                    if (icon != 0) {
+                        line.setViewVisibility(R.id.quota_provider_initial, View.INVISIBLE);
+                        line.setViewVisibility(R.id.quota_provider_logo, View.VISIBLE);
+                        line.setImageViewResource(R.id.quota_provider_logo, icon);
+                    }
                 } else {
                     // Keep the provider column reserved to line up every gauge.
                     line.setViewVisibility(R.id.quota_provider_initial, View.INVISIBLE);
+                    line.setViewVisibility(R.id.quota_provider_logo, View.INVISIBLE);
                     line.setViewVisibility(R.id.quota_provider_name, View.INVISIBLE);
                 }
                 line.removeAllViews(R.id.quota_metrics);
@@ -205,6 +212,17 @@ final class WidgetRenderer {
         if (hours < 24) return "↻ " + hours + "h " + (minutes % 60) + "m";
         if (hours < 168) return "↻ " + (hours / 24) + "d " + (hours % 24) + "h";
         return "↻ " + new SimpleDateFormat("d MMM", Locale.getDefault()).format(new Date(at));
+    }
+
+    private static int providerLogo(String id) {
+        if (id.contains("antigravity")) return R.drawable.widget_logo_antigravity;
+        if (id.contains("github-copilot")) return R.drawable.widget_logo_github_copilot;
+        if (id.contains("codex")) return R.drawable.widget_logo_codex;
+        if (id.contains("cursor")) return R.drawable.widget_logo_cursor;
+        if (id.equals("google")) return R.drawable.widget_logo_google;
+        if (id.equals("openai")) return R.drawable.widget_logo_openai;
+        if (id.equals("claude")) return R.drawable.widget_logo_claude;
+        return 0;
     }
 
     private static String providerInitial(String id, String name) {

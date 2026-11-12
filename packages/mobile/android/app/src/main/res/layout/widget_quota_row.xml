@@ -7,11 +7,17 @@
         android:id="@+id/quota_provider"
         android:layout_width="98dp" android:layout_height="match_parent"
         android:gravity="center_vertical" android:orientation="horizontal">
-        <TextView android:id="@+id/quota_provider_initial"
-            android:layout_width="24dp" android:layout_height="28dp"
-            android:gravity="center"
-            android:background="@drawable/widget_provider_badge"
-            android:textColor="#CEC6EB" android:textStyle="bold" android:textSize="13sp"/>
+        <FrameLayout android:layout_width="24dp" android:layout_height="28dp">
+            <TextView android:id="@+id/quota_provider_initial"
+                android:layout_width="match_parent" android:layout_height="match_parent"
+                android:gravity="center"
+                android:background="@drawable/widget_provider_badge"
+                android:textColor="#CEC6EB" android:textStyle="bold" android:textSize="13sp"/>
+            <ImageView android:id="@+id/quota_provider_logo"
+                android:layout_width="20dp" android:layout_height="20dp"
+                android:layout_gravity="center" android:visibility="gone"
+                android:contentDescription="Provider logo"/>
+        </FrameLayout>
         <TextView android:id="@+id/quota_provider_name"
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginLeft="5dp" android:ellipsize="end"
