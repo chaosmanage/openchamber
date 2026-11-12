@@ -167,7 +167,7 @@ final class WidgetRenderer {
         boolean narrow = widgetWidth(context, widgetId) < 300;
         // Reserve actual header, footer, and launcher inset; use enough height
         // for 2 legible rings and their two-line labels without clipping.
-        final int rowHeight = narrow ? 90 : 67;
+        final int rowHeight = narrow ? 127 : 67;
         final int visibleRows = Math.max(1, Math.min(8, (heightDp - 80) / rowHeight));
         List<QuotaLine> lines = quotaLines(groups);
         if (lines.isEmpty()) return;
@@ -224,7 +224,8 @@ final class WidgetRenderer {
             line.removeAllViews(R.id.quota_metrics);
             JSONObject[] two = new JSONObject[] { quota.left, quota.right };
             for (JSONObject item : two) {
-                RemoteViews meter = new RemoteViews(context.getPackageName(), R.layout.widget_quota_metric);
+                RemoteViews meter = new RemoteViews(context.getPackageName(),
+                    narrow ? R.layout.widget_quota_metric_narrow : R.layout.widget_quota_metric);
                 if (item == null) {
                     meter.setViewVisibility(R.id.quota_ring, View.INVISIBLE);
                     meter.setViewVisibility(R.id.quota_label, View.INVISIBLE);

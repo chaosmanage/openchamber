@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="0dp" android:layout_weight="1"
+    android:layout_height="wrap_content" android:gravity="center"
+    android:orientation="vertical" android:paddingLeft="3dp" android:paddingRight="3dp">
+    <ImageView android:id="@+id/quota_ring"
+        android:layout_width="48dp" android:layout_height="48dp"
+        android:contentDescription="Quota percentage"/>
+    <TextView android:id="@+id/quota_label"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center" android:ellipsize="end" android:maxLines="2"
+        android:textColor="#E3E4E8" android:textSize="11sp" android:textStyle="bold"/>
+    <TextView android:id="@+id/quota_reset"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center" android:maxLines="1" android:ellipsize="end"
+        android:textColor="#ADB0BA" android:textSize="10sp"/>
+    <TextView android:id="@+id/quota_detail"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center" android:maxLines="1" android:ellipsize="end"
+        android:textColor="#A8BFDB" android:textSize="10sp"/>
+</LinearLayout>
