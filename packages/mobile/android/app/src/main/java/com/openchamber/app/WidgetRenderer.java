@@ -60,6 +60,8 @@ final class WidgetRenderer {
         view.setOnClickPendingIntent(R.id.widget_header,
             open(context, usage ? "openchamber://settings/usage" : "openchamber://sessions?filter=recent",
                 widgetId * 100));
+        if (usage) view.setOnClickPendingIntent(R.id.widget_rows,
+            open(context, "openchamber://settings/usage", widgetId * 100 + 1));
         view.removeAllViews(R.id.widget_rows);
         JSONArray rows = data.optJSONArray("rows");
         int count = rows == null ? 0 : rows.length();
@@ -275,7 +277,9 @@ final class WidgetRenderer {
     private static Bitmap ring(Context context, double percent, String value, int foreground) {
         float density = context.getResources().getDisplayMetrics().density;
         float sp = context.getResources().getDisplayMetrics().scaledDensity;
-        int size = Math.max(72, Math.round(72 * density));
+        // Avoid large RemoteViews parcels when all providers fit on one page.
+        // 60dp remains sharper than the displayed 53dp ImageView.
+        int size = Math.max(60, Math.round(60 * density));
         Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         float center = size / 2f;
