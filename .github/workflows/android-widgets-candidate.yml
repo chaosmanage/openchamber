@@ -2,6 +2,11 @@ name: Android Widgets Candidate Test APK
 
 on:
   workflow_dispatch:
+    inputs:
+      source_ref:
+        description: "Branch to build without opening a PR"
+        required: true
+        default: "feature/android-home-widgets"
 
 jobs:
   candidate:
@@ -10,6 +15,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
