@@ -2,10 +2,12 @@ import React from 'react';
 import { registerPlugin } from '@capacitor/core';
 
 import { runtimeFetch } from '@/lib/runtime-fetch';
+import { getGitStatus, getRemotes } from '@/lib/gitApiHttp';
 import { getRuntimeKey } from '@/lib/runtime-switch';
 import { useGlobalSessionsStore } from '@/stores/useGlobalSessionsStore';
 import { useGlobalSessionStatusStore } from '@/sync/global-session-status';
 import { useQuotaStore } from '@/stores/useQuotaStore';
+import { useGitStore } from '@/stores/useGitStore';
 import type { UsageWindow } from '@/types';
 
 type WidgetBridge = {
@@ -152,10 +154,60 @@ const fallbackUsage = (): UsageWidgetData => {
   return { mode, updated: updatedLabel(), rows };
 };
 
-const sessionSnapshot = () => {
+// Reuse OpenChamber's Git API. Never store remote URLs, auth data, or tokens in
+// launcher snapshots; only short, human-readable GitHub and branch labels.
+type WidgetRepo = { github?: string; branch?: string };
+const gitWidgetCache = new Map<string, { at: number; value: WidgetRepo }>();
+const GIT_WIDGET_TTL = 5 * 60_000;
+
+const githubRepoName = (raw: string): string | undefined => {
+  const remote = raw.trim();
+  const match = /^(?:https:\/\/|ssh:\/\/git@|git@)github\.com(?::|\/)([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+?)(?:\.git)?\/?$/.exec(remote);
+  return match?.[1];
+};
+
+const repoForDirectory = async (directory: string): Promise<WidgetRepo> => {
+  if (!directory) return {};
+  const key = JSON.stringify([getRuntimeKey(), directory]);
+  const state = useGitStore.getState().getDirectoryState(directory);
+  const cached = gitWidgetCache.get(key);
+  const branch = state?.status?.current?.trim() || cached?.value.branch;
+  if (cached && Date.now() - cached.at < GIT_WIDGET_TTL) {
+    return { ...cached.value, ...(branch ? { branch } : {}) };
+  }
+  let github: string | undefined;
+  try {
+    const remotes = await getRemotes(directory);
+    const preferred = [...remotes].sort((a, b) => Number(b.name === 'origin') - Number(a.name === 'origin'));
+    for (const remote of preferred) {
+      github = githubRepoName(remote.fetchUrl) ?? githubRepoName(remote.pushUrl);
+      if (github) break;
+    }
+  } catch {
+    // Not every project is a Git repo or has a remote.
+  }
+  let resolvedBranch = branch;
+  if (!resolvedBranch) {
+    try {
+      const gitStatus = await getGitStatus(directory, { mode: 'light' });
+      resolvedBranch = gitStatus.current?.trim() || undefined;
+    } catch {
+      // Unknown branches are omitted, not guessed.
+    }
+  }
+  const value = {
+    ...(github ? { github: short(github, 46) } : {}),
+    ...(resolvedBranch && resolvedBranch !== 'HEAD' ? { branch: short(resolvedBranch, 46) } : {}),
+  };
+  if (gitWidgetCache.size > 128) gitWidgetCache.clear();
+  gitWidgetCache.set(key, { at: Date.now(), value });
+  return value;
+};
+
+const sessionSnapshot = async () => {
   const globals = useGlobalSessionsStore.getState();
   const live = useGlobalSessionStatusStore.getState();
-  const rows = globals.activeSessions
+  const sessions = globals.activeSessions
     .filter((session) => !session.parentID)
     .slice()
     .sort((a, b) => {
@@ -164,8 +216,12 @@ const sessionSnapshot = () => {
       if (aBusy !== bBusy) return bBusy - aBusy;
       return (b.time?.updated ?? b.time?.created ?? 0) - (a.time?.updated ?? a.time?.created ?? 0);
     })
-    .slice(0, 6)
-    .map((session) => {
+    .slice(0, 6);
+  const directories = [...new Set(sessions.map((session) => session.directory).filter(Boolean))];
+  const repoByDirectory = new Map(await Promise.all(directories.map(async (directory) => (
+    [directory, await repoForDirectory(directory)] as const
+  ))));
+  const rows = sessions.map((session) => {
       const active = live.statusById.get(session.id)?.status.type;
       const outcome = live.observedById.get(session.id)?.outcome;
       const status = active === 'retry' ? 'Retrying'
@@ -173,6 +229,7 @@ const sessionSnapshot = () => {
         : outcome === 'completed' ? 'Done'
         : outcome === 'failed' ? 'Failed' : 'Recent';
       const project = session.directory?.split(/[\\/]/).filter(Boolean).slice(-1)[0] ?? '';
+      const repo = repoByDirectory.get(session.directory) ?? {};
       return {
         id: session.id,
         directory: session.directory ?? '',
@@ -180,6 +237,8 @@ const sessionSnapshot = () => {
         project: short(project, 35),
         agent: short(session.agent || '', 20),
         status,
+        ...(repo.github ? { github: repo.github } : {}),
+        ...(repo.branch ? { branch: repo.branch } : {}),
       };
     });
   return { updated: updatedLabel(), rows };
@@ -189,7 +248,7 @@ const snapshot = async (): Promise<{ usage: string; sessions: string }> => {
   const usage = await readSdkUsage() ?? fallbackUsage();
   return {
     usage: JSON.stringify(usage),
-    sessions: JSON.stringify(sessionSnapshot()),
+    sessions: JSON.stringify(await sessionSnapshot()),
   };
 };
 

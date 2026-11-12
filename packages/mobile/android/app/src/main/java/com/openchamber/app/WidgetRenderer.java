@@ -362,7 +362,7 @@ final class WidgetRenderer {
 
     private static void sessionRows(Context context, RemoteViews root, JSONArray sessions,
                                     int widgetId, int heightDp) {
-        int maxRows = Math.min(6, Math.max(2, (heightDp - 88) / 60));
+        int maxRows = Math.min(6, Math.max(2, (heightDp - 92) / 78));
         root.setTextViewText(R.id.widget_subtitle,
             Math.min(maxRows, sessions.length()) + "/" + sessions.length());
         for (int i = 0; i < Math.min(maxRows, sessions.length()); i++) {
@@ -371,24 +371,37 @@ final class WidgetRenderer {
             RemoteViews row = new RemoteViews(context.getPackageName(), R.layout.widget_session_row);
             String status = item.optString("status", "Recent");
             int color = status.equals("Running") ? BLUE : status.equals("Retrying") ? AMBER
-                : status.equals("Done") ? GREEN : status.equals("Failed") ? RED : PURPLE;
+                : status.equals("Done") ? GREEN : status.equals("Failed") ? RED : MUTED;
             String mark = status.equals("Running") ? "● " : status.equals("Retrying") ? "↻ "
                 : status.equals("Done") ? "✓ " : status.equals("Failed") ? "× " : "◷ ";
             row.setTextViewText(R.id.widget_session_badge, mark + status);
             row.setTextColor(R.id.widget_session_badge, color);
-            row.setInt(R.id.widget_session_accent, "setBackgroundColor",
-                status.equals("Recent") ? projectAccent(item.optString("project")) : color);
+            // Color always means status, never a random per-project hash.
+            row.setInt(R.id.widget_session_accent, "setBackgroundColor", color);
             row.setTextViewText(R.id.widget_session_name, clean(item.optString("name"), 90));
 
-            String project = clean(item.optString("project"), 30);
+            String project = clean(item.optString("project"), 40);
             row.setTextViewText(R.id.widget_session_project,
-                project.isEmpty() ? "Session" : "▣  " + project);
-            // A project receives a repeatable accent, distinct from the state badge.
-            row.setTextColor(R.id.widget_session_project,
-                project.isEmpty() ? MUTED : projectAccent(project));
+                project.isEmpty() ? "Project not set" : "▣  " + project);
+            row.setTextColor(R.id.widget_session_project, MUTED);
             String agent = clean(item.optString("agent"), 20);
-            if (agent.isEmpty()) row.setViewVisibility(R.id.widget_session_agent, View.GONE);
-            else row.setTextViewText(R.id.widget_session_agent, agent);
+            if (!agent.isEmpty()) {
+                row.setViewVisibility(R.id.widget_session_agent, View.VISIBLE);
+                row.setTextViewText(R.id.widget_session_agent, agent);
+            }
+            String github = clean(item.optString("github"), 52);
+            String branch = clean(item.optString("branch"), 52);
+            if (!github.isEmpty() || !branch.isEmpty()) {
+                row.setViewVisibility(R.id.widget_session_gitrow, View.VISIBLE);
+                if (!github.isEmpty()) {
+                    row.setViewVisibility(R.id.widget_session_github, View.VISIBLE);
+                    row.setTextViewText(R.id.widget_session_github, "GH  " + github);
+                }
+                if (!branch.isEmpty()) {
+                    row.setViewVisibility(R.id.widget_session_branch, View.VISIBLE);
+                    row.setTextViewText(R.id.widget_session_branch, "⑂  " + branch);
+                }
+            }
 
             String id = item.optString("id");
             if (!id.isEmpty()) {
@@ -400,11 +413,6 @@ final class WidgetRenderer {
             }
             root.addView(R.id.widget_rows, row);
         }
-    }
-
-    private static int projectAccent(String project) {
-        int[] colors = new int[] { PURPLE, BLUE, GREEN, AMBER };
-        return colors[Math.floorMod(project.hashCode(), colors.length)];
     }
 
     private static String clean(String raw, int limit) {
