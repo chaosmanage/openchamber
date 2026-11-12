@@ -29,8 +29,8 @@ jobs:
           java-version: '21'
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      - name: Test quota snapshot independent of SDK extensions
-        run: bun test packages/ui/src/apps/widgetUsageSnapshot.test.ts
+      - name: Test quota snapshots and provider deep-links
+        run: bun test packages/ui/src/apps/widgetUsageSnapshot.test.ts packages/ui/src/apps/deepLinks.test.ts
       - name: Lint mobile
         run: bun run lint:mobile
       # This checkout-only transform keeps the upstream PR clean:
