@@ -101,7 +101,14 @@ final class WidgetRenderer {
         Bundle options = AppWidgetManager.getInstance(context).getAppWidgetOptions(widgetId);
         int height = options == null ? 0
             : options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0);
-        return height > 0 ? height : 260;
+        return height > 0 ? height : 235;
+    }
+
+    private static int widgetWidth(Context context, int widgetId) {
+        Bundle options = AppWidgetManager.getInstance(context).getAppWidgetOptions(widgetId);
+        int width = options == null ? 0
+            : options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0);
+        return width > 0 ? width : 330;
     }
 
     private static List<JSONObject> measurableRows(JSONObject group) {
@@ -117,41 +124,57 @@ final class WidgetRenderer {
         return result;
     }
 
-    private static int quotaRows(JSONObject group) {
-        int size = measurableRows(group).size();
-        return Math.max(1, (size + 1) / 2);
+    private static final class QuotaLine {
+        final JSONObject provider;
+        final JSONObject left;
+        final JSONObject right;
+        final int offset;
+        QuotaLine(JSONObject provider, JSONObject left, JSONObject right, int offset) {
+            this.provider = provider;
+            this.left = left;
+            this.right = right;
+            this.offset = offset;
+        }
     }
 
-    /** Group pages at provider boundaries, never splitting one provider's windows. */
-    private static List<int[]> providerPages(JSONArray groups, int rowBudget) {
-        ArrayList<int[]> pages = new ArrayList<>();
-        int start = 0;
-        int used = 0;
-        for (int index = 0; index < groups.length(); index++) {
-            JSONObject group = groups.optJSONObject(index);
-            int size = group == null ? 1 : quotaRows(group);
-            if (used > 0 && used + size > rowBudget) {
-                pages.add(new int[] { start, index });
-                start = index;
-                used = 0;
+    /**
+     * Flatten physical rows before paging. Group-boundary pagination produced
+     * large blank areas when the next provider had four Antigravity windows.
+     * Retain the provider label on every continued row so no quota gets lost.
+     */
+    private static List<QuotaLine> quotaLines(JSONArray groups) {
+        ArrayList<QuotaLine> lines = new ArrayList<>();
+        for (int i = 0; i < groups.length(); i++) {
+            JSONObject provider = groups.optJSONObject(i);
+            if (provider == null) continue;
+            List<JSONObject> windows = measurableRows(provider);
+            if (windows.isEmpty()) {
+                lines.add(new QuotaLine(provider, null, null, 0));
+                continue;
             }
-            used += size;
+            for (int n = 0; n < windows.size(); n += 2) {
+                lines.add(new QuotaLine(provider, windows.get(n),
+                    n + 1 < windows.size() ? windows.get(n+1) : null, n));
+            }
         }
-        if (groups.length() > start) pages.add(new int[] { start, groups.length() });
-        return pages;
+        return lines;
     }
 
     private static void usageRows(Context context, RemoteViews root, JSONArray groups,
                                   int widgetId, int heightDp, String mode) {
-        final int rowBudget = Math.max(1, Math.min(8, (heightDp - 78) / 71));
-        final List<int[]> pages = providerPages(groups, rowBudget);
-        if (pages.isEmpty()) return;
+        boolean narrow = widgetWidth(context, widgetId) < 300;
+        // Reserve actual header, footer, and launcher inset; use enough height
+        // for 2 legible rings and their two-line labels without clipping.
+        final int rowHeight = narrow ? 90 : 64;
+        final int visibleRows = Math.max(1, Math.min(8, (heightDp - 70) / rowHeight));
+        List<QuotaLine> lines = quotaLines(groups);
+        if (lines.isEmpty()) return;
+        int pages = (lines.size() + visibleRows - 1) / visibleRows;
         int storedPage = context.getSharedPreferences("oc_sdk_widgets", Context.MODE_PRIVATE)
             .getInt("usage_page_" + widgetId, 0);
-        int page = Math.floorMod(storedPage, pages.size());
-        if (pages.size() > 1) {
-            root.setTextViewText(R.id.widget_subtitle,
-                mode + " · " + (page + 1) + "/" + pages.size());
+        int page = Math.floorMod(storedPage, pages);
+        if (pages > 1) {
+            root.setTextViewText(R.id.widget_subtitle, mode + " · " + (page + 1) + "/" + pages);
             root.setViewVisibility(R.id.widget_page_next, View.VISIBLE);
             Intent intent = new Intent(context, UsageWidgetProvider.class);
             intent.setAction(NEXT_USAGE_ACTION);
@@ -164,82 +187,69 @@ final class WidgetRenderer {
             root.setTextViewText(R.id.widget_subtitle, mode);
         }
 
-        int[] bounds = pages.get(page);
-        for (int groupIndex = bounds[0]; groupIndex < bounds[1]; groupIndex++) {
-            JSONObject group = groups.optJSONObject(groupIndex);
-            if (group == null) continue;
-            List<JSONObject> meters = measurableRows(group);
+        int from = page * visibleRows;
+        int to = Math.min(from + visibleRows, lines.size());
+        for (int lineNum = from; lineNum < to; lineNum++) {
+            QuotaLine quota = lines.get(lineNum);
+            JSONObject group = quota.provider;
             String name = clean(group.optString("name"), 48);
             String id = group.optString("id");
-            String balance = "";
-            JSONArray allRows = group.optJSONArray("rows");
-            if (allRows != null) {
-                for (int i = 0; i < allRows.length(); i++) {
-                    JSONObject item = allRows.optJSONObject(i);
-                    if (item != null && !Double.isFinite(item.optDouble("percent", Double.NaN))) {
-                        String text = item.optString("value");
-                        if (item.optString("label").toLowerCase(Locale.ROOT).contains("balance")
-                            && !text.isEmpty()) balance = "Credits " + text;
-                    }
-                }
+            RemoteViews line = new RemoteViews(context.getPackageName(),
+                narrow ? R.layout.widget_quota_row_narrow : R.layout.widget_quota_row);
+            line.setTextViewText(R.id.quota_provider_initial, providerInitial(id, name));
+            line.setTextViewText(R.id.quota_provider_name, name);
+            line.setTextColor(R.id.quota_provider_initial, providerColor(id));
+            int icon = providerLogo(id);
+            if (icon != 0) {
+                line.setTextViewText(R.id.quota_provider_initial, "");
+                line.setViewVisibility(R.id.quota_provider_logo, View.VISIBLE);
+                line.setImageViewResource(R.id.quota_provider_logo, icon);
             }
-
-            // Provider column takes a fixed width; both quota columns take
-            // exactly half the remainder, with the ring/label horizontal.
-            for (int index = 0; index < Math.max(1, meters.size()); index += 2) {
-                RemoteViews line = new RemoteViews(context.getPackageName(), R.layout.widget_quota_row);
-                if (index == 0) {
-                    line.setTextViewText(R.id.quota_provider_initial, providerInitial(id, name));
-                    line.setTextViewText(R.id.quota_provider_name, name);
-                    line.setTextColor(R.id.quota_provider_initial, providerColor(id));
-                    int icon = providerLogo(id);
-                    if (icon != 0) {
-                        line.setTextViewText(R.id.quota_provider_initial, "");
-                        line.setViewVisibility(R.id.quota_provider_logo, View.VISIBLE);
-                        line.setImageViewResource(R.id.quota_provider_logo, icon);
-                    }
-                    if (!balance.isEmpty()) {
+            // Credit balances are text, not percentage rings.
+            if (quota.offset == 0) {
+                JSONArray allRows = group.optJSONArray("rows");
+                if (allRows != null) for (int i = 0; i < allRows.length(); i++) {
+                    JSONObject entry = allRows.optJSONObject(i);
+                    if (entry == null || Double.isFinite(entry.optDouble("percent", Double.NaN))) continue;
+                    if (entry.optString("label").toLowerCase(Locale.ROOT).contains("balance")) {
                         line.setViewVisibility(R.id.quota_provider_extra, View.VISIBLE);
-                        line.setTextViewText(R.id.quota_provider_extra, clean(balance, 25));
+                        line.setTextViewText(R.id.quota_provider_extra,
+                            clean("Credits " + entry.optString("value"), 25));
+                        break;
                     }
-                } else {
-                    line.setViewVisibility(R.id.quota_provider_initial, View.INVISIBLE);
-                    line.setViewVisibility(R.id.quota_provider_logo, View.INVISIBLE);
-                    line.setViewVisibility(R.id.quota_provider_name, View.INVISIBLE);
-                    line.setViewVisibility(R.id.quota_provider_extra, View.GONE);
                 }
-                line.removeAllViews(R.id.quota_metrics);
-                for (int column = 0; column < 2; column++) {
-                    RemoteViews metric = new RemoteViews(context.getPackageName(), R.layout.widget_quota_metric);
-                    JSONObject item = index + column < meters.size() ? meters.get(index + column) : null;
-                    if (item == null) {
-                        metric.setViewVisibility(R.id.quota_ring, View.INVISIBLE);
-                        metric.setViewVisibility(R.id.quota_label, View.INVISIBLE);
-                        metric.setViewVisibility(R.id.quota_reset, View.GONE);
-                        metric.setViewVisibility(R.id.quota_detail, View.GONE);
-                    } else {
-                        double percentage = item.optDouble("percent", Double.NaN);
-                        String value = item.optString("value", "–");
-                        double used = item.optDouble("used", Double.NaN);
-                        double remaining = Double.isFinite(used) ? 100.0 - used
-                            : Double.isFinite(percentage) ? percentage : Double.NaN;
-                        int color = !Double.isFinite(remaining) ? MUTED
-                            : remaining < 20 ? RED : remaining < 50 ? AMBER : GREEN;
-                        metric.setImageViewBitmap(R.id.quota_ring, ring(context, percentage, value, color));
-                        metric.setTextViewText(R.id.quota_label, compactLabel(item.optString("label")));
-                        String reset = resetLabel(item.optLong("resetAt", 0));
-                        if (reset.isEmpty()) metric.setViewVisibility(R.id.quota_reset, View.GONE);
-                        else metric.setTextViewText(R.id.quota_reset, reset);
-                        String detail = clean(item.optString("detail"), 40);
-                        if (detail.isEmpty() || detail.equals(value)) {
-                            metric.setViewVisibility(R.id.quota_detail, View.GONE);
-                        } else metric.setTextViewText(R.id.quota_detail,
-                            detail.replace(" / ", "/").replace(" used", ""));
-                    }
-                    line.addView(R.id.quota_metrics, metric);
-                }
-                root.addView(R.id.widget_rows, line);
             }
+            line.removeAllViews(R.id.quota_metrics);
+            JSONObject[] two = new JSONObject[] { quota.left, quota.right };
+            for (JSONObject item : two) {
+                RemoteViews meter = new RemoteViews(context.getPackageName(), R.layout.widget_quota_metric);
+                if (item == null) {
+                    meter.setViewVisibility(R.id.quota_ring, View.INVISIBLE);
+                    meter.setViewVisibility(R.id.quota_label, View.INVISIBLE);
+                    meter.setViewVisibility(R.id.quota_reset, View.GONE);
+                    meter.setViewVisibility(R.id.quota_detail, View.GONE);
+                } else {
+                    double percentage = item.optDouble("percent", Double.NaN);
+                    String value = item.optString("value", "–");
+                    double used = item.optDouble("used", Double.NaN);
+                    double remaining = Double.isFinite(used) ? 100 - used
+                        : Double.isFinite(percentage) ? percentage : Double.NaN;
+                    int color = !Double.isFinite(remaining) ? MUTED
+                        : remaining < 20 ? RED : remaining < 50 ? AMBER : GREEN;
+                    meter.setImageViewBitmap(R.id.quota_ring, ring(context, percentage, value, color));
+                    meter.setTextViewText(R.id.quota_label, compactLabel(item.optString("label")));
+                    String reset = resetLabel(item.optLong("resetAt", 0));
+                    if (reset.isEmpty()) meter.setViewVisibility(R.id.quota_reset, View.GONE);
+                    else meter.setTextViewText(R.id.quota_reset, reset);
+                    String detail = clean(item.optString("detail"), 36);
+                    if (detail.isEmpty() || detail.equals(value)) {
+                        meter.setViewVisibility(R.id.quota_detail, View.GONE);
+                    } else meter.setTextViewText(R.id.quota_detail,
+                        detail.replace(" / ", "/").replace(" used", ""));
+                }
+                line.addView(R.id.quota_metrics, meter);
+            }
+            root.addView(R.id.widget_rows, line);
         }
     }
 
@@ -292,8 +302,15 @@ final class WidgetRenderer {
         text.setColor(FG);
         String number = clean(value, 12);
         if (number.endsWith("%") && number.length() > 5) number = number.substring(0, 4) + "%";
-        float font = (number.length() > 5 ? 14f : number.length() > 4 ? 16.5f : 19f) * sp;
+        float font = (number.length() > 5 ? 15f : number.length() > 4 ? 18f : 19f) * sp;
         text.setTextSize(font);
+        // Most importantly, 100% must NEVER escape the ring's inner diameter,
+        // even on high-font-scale Android launchers.
+        float safeWidth = 2f * (radius - stroke * 0.85f);
+        while (text.measureText(number) > safeWidth && font > 7f * sp) {
+            font -= 0.5f * sp;
+            text.setTextSize(font);
+        }
         text.setTextAlign(Paint.Align.CENTER);
         canvas.drawText(number, center, center - (text.ascent() + text.descent()) / 2, text);
         return bitmap;

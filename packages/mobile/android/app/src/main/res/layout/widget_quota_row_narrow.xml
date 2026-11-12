@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="vertical" android:gravity="center_vertical"
+    android:minHeight="89dp" android:paddingTop="3dp" android:paddingBottom="3dp">
+    <LinearLayout android:id="@+id/quota_provider"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center_vertical" android:orientation="vertical">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:gravity="center_vertical" android:orientation="horizontal">
+            <FrameLayout android:layout_width="26dp" android:layout_height="29dp">
+                <TextView android:id="@+id/quota_provider_initial"
+                    android:layout_width="match_parent" android:layout_height="match_parent"
+                    android:gravity="center" android:background="@drawable/widget_provider_badge"
+                    android:textColor="#CEC6EB" android:textStyle="bold" android:textSize="13sp"/>
+                <ImageView android:id="@+id/quota_provider_logo"
+                    android:layout_width="21dp" android:layout_height="21dp"
+                    android:layout_gravity="center" android:visibility="gone"
+                    android:contentDescription="Provider logo"/>
+            </FrameLayout>
+            <TextView android:id="@+id/quota_provider_name"
+                android:layout_width="0dp" android:layout_weight="1"
+                android:layout_height="wrap_content" android:layout_marginLeft="5dp"
+                android:ellipsize="end" android:maxLines="2"
+                android:textColor="#F1F1F2" android:textSize="12sp"
+                android:fontFamily="sans-serif-condensed" android:textStyle="bold"/>
+        </LinearLayout>
+        <TextView android:id="@+id/quota_provider_extra"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="2dp" android:visibility="gone"
+            android:textColor="#BDB0D3" android:textSize="10sp"
+            android:maxLines="1" android:ellipsize="end"/>
+    </LinearLayout>
+    <LinearLayout android:id="@+id/quota_metrics"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center_vertical" android:orientation="horizontal"
+        android:layout_marginTop="3dp"/>
+</LinearLayout>
