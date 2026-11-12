@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="0dp" android:layout_weight="1"
+    android:layout_height="wrap_content" android:gravity="center"
+    android:orientation="vertical" android:paddingLeft="1dp" android:paddingRight="1dp">
+    <ImageView android:id="@+id/quota_ring"
+        android:layout_width="40dp" android:layout_height="40dp"
+        android:contentDescription="Quota usage"/>
+    <TextView android:id="@+id/quota_label"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center" android:maxLines="2" android:minLines="1"
+        android:ellipsize="end" android:textColor="#D1D5DB"
+        android:textSize="9sp" android:lineSpacingExtra="-1dp"/>
+    <TextView android:id="@+id/quota_reset"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center" android:maxLines="1"
+        android:ellipsize="end" android:textColor="#9CA3AF" android:textSize="9sp"/>
+    <TextView android:id="@+id/quota_detail"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center" android:maxLines="1"
+        android:ellipsize="end" android:textColor="#A7B9D9" android:textSize="9sp"/>
+</LinearLayout>
