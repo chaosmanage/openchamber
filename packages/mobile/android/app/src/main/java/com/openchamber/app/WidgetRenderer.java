@@ -71,7 +71,8 @@ final class WidgetRenderer {
             line.setViewVisibility(R.id.widget_line_progress, View.GONE);
             view.addView(R.id.widget_rows, line);
         } else if (usage) {
-            usageRows(context, view, rows, widgetId, heightDp);
+            usageRows(context, view, rows, widgetId, heightDp,
+                "used".equals(data.optString("mode")) ? "used" : "remaining");
         } else {
             sessionRows(context, view, rows, widgetId, heightDp);
         }
@@ -141,7 +142,7 @@ final class WidgetRenderer {
     }
 
     private static void usageRows(Context context, RemoteViews root, JSONArray groups,
-                                  int widgetId, int heightDp) {
+                                  int widgetId, int heightDp, String mode) {
         final int rowBudget = Math.max(1, Math.min(8, (heightDp - 78) / 71));
         final List<int[]> pages = providerPages(groups, rowBudget);
         if (pages.isEmpty()) return;
@@ -150,7 +151,7 @@ final class WidgetRenderer {
         int page = Math.floorMod(storedPage, pages.size());
         if (pages.size() > 1) {
             root.setTextViewText(R.id.widget_subtitle,
-                (page + 1) + "/" + pages.size());
+                mode + " · " + (page + 1) + "/" + pages.size());
             root.setViewVisibility(R.id.widget_page_next, View.VISIBLE);
             Intent intent = new Intent(context, UsageWidgetProvider.class);
             intent.setAction(NEXT_USAGE_ACTION);
@@ -160,7 +161,7 @@ final class WidgetRenderer {
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         } else {
             root.setViewVisibility(R.id.widget_page_next, View.GONE);
-            root.setTextViewText(R.id.widget_subtitle, "Quota remaining");
+            root.setTextViewText(R.id.widget_subtitle, mode);
         }
 
         int[] bounds = pages.get(page);
