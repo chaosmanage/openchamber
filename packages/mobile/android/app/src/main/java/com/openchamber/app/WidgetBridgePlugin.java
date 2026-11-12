@@ -2,6 +2,9 @@ package com.openchamber.app;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Handler;
+import android.os.Looper;
+import java.lang.ref.WeakReference;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -11,6 +14,35 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 /** The connected WebView writes redacted widget snapshots; widgets never receive API tokens. */
 @CapacitorPlugin(name = "WidgetBridge")
 public class WidgetBridgePlugin extends Plugin {
+    private static volatile WeakReference<WidgetBridgePlugin> instance = new WeakReference<>(null);
+
+    @Override
+    public void load() {
+        instance = new WeakReference<>(this);
+    }
+
+    @Override
+    protected void handleOnDestroy() {
+        if (instance.get() == this) instance = new WeakReference<>(null);
+        super.handleOnDestroy();
+    }
+
+    /**
+     * Dispatch promptly to a running WebView without opening the activity.
+     * The persisted request counter remains the fallback when the WebView
+     * was killed or the event could not be delivered while backgrounded.
+     */
+    static boolean notifyRefreshRequested(int request) {
+        WidgetBridgePlugin plugin = instance.get();
+        if (plugin == null) return false;
+        new Handler(Looper.getMainLooper()).post(() -> {
+            JSObject state = new JSObject();
+            state.put("requested", request);
+            plugin.notifyListeners("refreshRequested", state, true);
+        });
+        return true;
+    }
+
     /**
      * Native refresh intent queue; web credentials and network access remain
      * exclusively in the connected WebView. Polling this lightweight local
@@ -37,6 +69,23 @@ public class WidgetBridgePlugin extends Plugin {
         int acknowledged = prefs.getInt("refresh_acknowledged", 0);
         if (sequence > acknowledged && sequence <= requested) {
             prefs.edit().putInt("refresh_acknowledged", sequence).apply();
+            WidgetRenderer.refresh(getContext());
+        }
+        call.resolve(new JSObject());
+    }
+
+    /** Distinguish a failed network refresh from a successful server sync. */
+    @PluginMethod
+    public void reportRefreshFailure(PluginCall call) {
+        Integer sequence = call.getInt("requested");
+        if (sequence == null) {
+            call.reject("Missing refresh sequence");
+            return;
+        }
+        SharedPreferences prefs = getContext().getSharedPreferences("oc_sdk_widgets", Context.MODE_PRIVATE);
+        if (sequence == prefs.getInt("refresh_requested", 0)) {
+            prefs.edit().putInt("refresh_failed", sequence).apply();
+            WidgetRenderer.refresh(getContext());
         }
         call.resolve(new JSObject());
     }

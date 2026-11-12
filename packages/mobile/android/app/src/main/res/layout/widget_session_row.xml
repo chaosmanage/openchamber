@@ -14,10 +14,24 @@
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:ellipsize="end" android:maxLines="1"
             android:textStyle="bold" android:textSize="14sp" android:textColor="#dbd7cc"/>
-        <TextView android:id="@+id/widget_session_project"
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="2dp" android:ellipsize="end" android:maxLines="1"
-            android:textSize="11sp" android:textColor="#b8b3aa"/>
+        <!-- The status sits on the project line; the title above stays full-width. -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="2dp" android:orientation="horizontal"
+            android:gravity="center_vertical">
+            <TextView android:id="@+id/widget_session_project"
+                android:layout_width="0dp" android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:ellipsize="end" android:maxLines="1"
+                android:textSize="11sp" android:textColor="#b8b3aa"/>
+            <TextView android:id="@+id/widget_session_badge"
+                android:layout_width="wrap_content" android:layout_height="24dp"
+                android:minWidth="58dp" android:layout_marginLeft="6dp"
+                android:gravity="center" android:textSize="11sp"
+                android:textStyle="bold" android:letterSpacing="0.025"
+                android:paddingLeft="7dp" android:paddingRight="7dp"
+                android:visibility="gone"
+                android:background="@drawable/widget_session_status_bg"/>
+        </LinearLayout>
         <LinearLayout android:id="@+id/widget_session_gitrow"
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginTop="3dp" android:orientation="horizontal"
@@ -40,18 +54,5 @@
                 android:paddingTop="3dp" android:paddingBottom="3dp"
                 android:background="@drawable/widget_session_branch_bg"/>
         </LinearLayout>
-    </LinearLayout>
-    <LinearLayout android:id="@+id/widget_session_status_column"
-        android:layout_width="88dp" android:layout_height="match_parent" android:layout_marginLeft="6dp"
-        android:gravity="center_vertical|right" android:orientation="vertical">
-        <!-- A plain TextView is reliable inside Android collection widgets.
-             Status is never contingent on a nested bitmap overlay. -->
-        <TextView android:id="@+id/widget_session_badge"
-            android:layout_width="match_parent" android:layout_height="27dp"
-            android:gravity="center" android:textSize="11sp" android:letterSpacing="0.04"
-            android:textStyle="bold" android:maxLines="1"
-            android:paddingLeft="3dp" android:paddingRight="3dp"
-            android:background="@drawable/widget_session_status_bg"/>
-
     </LinearLayout>
 </LinearLayout>

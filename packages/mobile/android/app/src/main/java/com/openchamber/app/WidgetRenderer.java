@@ -93,16 +93,14 @@ final class WidgetRenderer {
         view.setOnClickPendingIntent(R.id.widget_header,
             open(context, usage ? "openchamber://settings/usage" : "openchamber://sessions?filter=recent",
                 widgetId * 100));
-        // A real native Activity intent, NOT a deep link: custom-scheme
-        // appUrlOpen events are not guaranteed for an internal PendingIntent.
-        // MainActivity persists the tap until the connected WebView consumes it.
-        Intent refresh = new Intent(context, MainActivity.class);
-        refresh.setAction(MainActivity.ACTION_REFRESH_WIDGETS);
-        refresh.setData(Uri.parse("openchamber://widget/refresh/" + widgetId));
-        refresh.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP
-            | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        // Tapping refresh never navigates away from the home screen.
+        // The receiver stores the request, updates the native feedback, and
+        // the connected WebView consumes the request and performs the fetch.
+        Intent refresh = new Intent(context, WidgetRefreshReceiver.class);
+        refresh.setAction(WidgetRefreshReceiver.ACTION);
+        refresh.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId);
         view.setOnClickPendingIntent(R.id.widget_refresh,
-            PendingIntent.getActivity(context, widgetId * 1000 + 77, refresh,
+            PendingIntent.getBroadcast(context, widgetId * 1000 + 77, refresh,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         JSONArray rows = data.optJSONArray("rows");
         int count = rows == null ? 0 : rows.length();
@@ -137,8 +135,20 @@ final class WidgetRenderer {
                 "Recent " + Math.min(10, count) + " sessions");
         }
         String updated = clean(data.optString("updated"), 75);
-        view.setTextViewText(R.id.widget_timestamp,
-            updated.isEmpty() ? "Not synced" : "Synced " + updated);
+        int requested = context.getSharedPreferences("oc_sdk_widgets", Context.MODE_PRIVATE)
+            .getInt("refresh_requested", 0);
+        int acknowledged = context.getSharedPreferences("oc_sdk_widgets", Context.MODE_PRIVATE)
+            .getInt("refresh_acknowledged", 0);
+        int failed = context.getSharedPreferences("oc_sdk_widgets", Context.MODE_PRIVATE)
+            .getInt("refresh_failed", 0);
+        boolean clientAvailable = context.getSharedPreferences("oc_sdk_widgets", Context.MODE_PRIVATE)
+            .getBoolean("refresh_client_available", false);
+        String label = updated.isEmpty() ? "Not synced" : "Synced " + updated;
+        if (requested > acknowledged) {
+            label = failed == requested ? "Refresh failed · check connection"
+                : clientAvailable ? "Refreshing…" : "Queued · open app to sync";
+        }
+        view.setTextViewText(R.id.widget_timestamp, label);
         if (usage) {
             String mode = "used".equals(data.optString("mode")) ? "used" : "remaining";
             // usageRows owns the compact mode / page indicator.
@@ -474,12 +484,13 @@ final class WidgetRenderer {
             // expires the session becomes Idle with no repetitive text chip,
             // giving its title the full available width.
             if ("Idle".equals(status)) {
-                row.setViewVisibility(R.id.widget_session_status_column, View.GONE);
+                row.setViewVisibility(R.id.widget_session_badge, View.GONE);
             } else {
                 // Explicit, legible status label beside the session name.
                 // Failed is shown as Error; Idle has no label at all.
+                row.setViewVisibility(R.id.widget_session_badge, View.VISIBLE);
                 row.setTextViewText(R.id.widget_session_badge,
-                    "Failed".equals(status) ? "ERROR" : status.toUpperCase(Locale.ROOT));
+                    "Failed".equals(status) ? "● ERROR" : "● " + status.toUpperCase(Locale.ROOT));
                 row.setTextColor(R.id.widget_session_badge, color);
             }
             // A low-saturation full-row tint complements the clear status tag,

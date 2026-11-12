@@ -46,6 +46,8 @@
                 android:resource="@xml/widget_sessions_info" />
         </receiver>
 
+        <receiver android:name=".WidgetRefreshReceiver" android:exported="false" />
+
         <!-- Standard Android RemoteViews collection adapter for the Sessions widget.
              The service reads only local, redacted snapshots, never network credentials. -->
         <service android:name=".WidgetSessionsService"

@@ -16,6 +16,10 @@ type WidgetBridge = {
   update(args: { usage: string; sessions: string }): Promise<void>;
   pendingRefresh(): Promise<{ requested: number; acknowledged: number }>;
   acknowledgeRefresh(args: { requested: number }): Promise<void>;
+  reportRefreshFailure(args: { requested: number }): Promise<void>;
+  addListener(eventName: 'refreshRequested', listener: () => void): Promise<{
+    remove(): Promise<void>;
+  }>;
 };
 
 const WidgetBridge = registerPlugin<WidgetBridge>('WidgetBridge');
@@ -146,6 +150,7 @@ let refreshInFlight: Promise<void> | null = null;
 export const refreshNativeWidgetData = (): Promise<void> => {
   if (refreshInFlight) return refreshInFlight;
   const job = (async () => {
+    const beforeQuotaUpdate = useQuotaStore.getState().lastUpdated;
     const [quotaResult, sessionsResult] = await Promise.allSettled([
       useQuotaStore.getState().ensureLoadedForRuntime({ refresh: true }),
       useGlobalSessionsStore.getState().refreshSessionHead(),
@@ -155,6 +160,12 @@ export const refreshNativeWidgetData = (): Promise<void> => {
     }
     if (sessionsResult.status === 'rejected' || sessionsResult.value === false) {
       console.warn('[AndroidWidgets] Sessions refresh failed');
+    }
+    const quotaUpdated = useQuotaStore.getState().lastUpdated !== beforeQuotaUpdate
+      && useQuotaStore.getState().lastUpdated !== null;
+    const sessionsUpdated = sessionsResult.status === 'fulfilled' && sessionsResult.value === true;
+    if (!quotaUpdated && !sessionsUpdated) {
+      throw new Error('No connected data source responded to widget refresh');
     }
     const data = await snapshot(currentWidgetPalette);
     await WidgetBridge.update(data);
@@ -201,6 +212,10 @@ export const useNativeWidgetSync = ({ enabled }: { enabled: boolean }): void => 
         if (!disposed) await WidgetBridge.acknowledgeRefresh({ requested: state.requested });
       } catch (error) {
         console.warn('[AndroidWidgets] Manual widget refresh failed:', error);
+        const pending = await WidgetBridge.pendingRefresh().catch(() => null);
+        if (pending && pending.requested > pending.acknowledged) {
+          await WidgetBridge.reportRefreshFailure({ requested: pending.requested }).catch(() => undefined);
+        }
         nextRefreshAttemptAt = Date.now() + 15_000;
       } finally {
         checkingRefresh = false;
@@ -229,6 +244,15 @@ export const useNativeWidgetSync = ({ enabled }: { enabled: boolean }): void => 
     schedule();
     void checkManualRefresh();
     const manualRefreshPoll = setInterval(() => { void checkManualRefresh(); }, 2_000);
+    // A live process can refresh immediately, without navigating away from the
+    // launcher. Polling remains for requests queued during cold starts.
+    let removeRefreshListener: (() => void) | undefined;
+    void WidgetBridge.addListener('refreshRequested', () => {
+      void checkManualRefresh();
+    }).then((handle) => {
+      if (disposed) void handle.remove();
+      else removeRefreshListener = () => { void handle.remove(); };
+    }).catch(() => undefined);
     void useQuotaStore.getState().ensureLoadedForRuntime().finally(schedule);
     const interval = setInterval(() => {
       void useQuotaStore.getState().ensureLoadedForRuntime({ refresh: true }).finally(schedule);
@@ -241,6 +265,7 @@ export const useNativeWidgetSync = ({ enabled }: { enabled: boolean }): void => 
       if (timer !== null) clearTimeout(timer);
       clearInterval(interval);
       clearInterval(manualRefreshPoll);
+      removeRefreshListener?.();
       document.removeEventListener('visibilitychange', onVisible);
       for (const unsubscribe of listeners) unsubscribe();
     };
