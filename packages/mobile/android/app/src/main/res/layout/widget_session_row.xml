@@ -42,8 +42,8 @@
         </LinearLayout>
     </LinearLayout>
     <LinearLayout android:layout_width="88dp"
-        android:layout_height="51dp" android:layout_marginLeft="6dp"
-        android:gravity="top|right" android:orientation="vertical">
+        android:layout_height="match_parent" android:layout_marginLeft="6dp"
+        android:gravity="center_vertical|right" android:orientation="vertical">
         <!-- A plain TextView is reliable inside Android collection widgets.
              Status is never contingent on a nested bitmap overlay. -->
         <TextView android:id="@+id/widget_session_badge"
@@ -52,15 +52,6 @@
             android:textStyle="bold" android:maxLines="1"
             android:paddingLeft="3dp" android:paddingRight="3dp"
             android:background="@drawable/widget_session_status_bg"/>
-        <TextView android:id="@+id/widget_session_agent"
-            android:layout_width="match_parent" android:layout_height="23dp"
-            android:layout_marginTop="3dp"
-            android:ellipsize="end" android:maxLines="1"
-            android:paddingLeft="5dp" android:paddingRight="5dp"
-            android:paddingTop="2dp" android:paddingBottom="2dp"
-            android:gravity="center"
-            android:textColor="#e8a978" android:textSize="10sp"
-            android:background="@drawable/widget_session_agent_bg"
-            android:visibility="invisible"/>
+
     </LinearLayout>
 </LinearLayout>

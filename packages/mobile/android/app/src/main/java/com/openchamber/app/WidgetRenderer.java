@@ -474,13 +474,6 @@ final class WidgetRenderer {
             // action; activity badges independently use semantic status colors.
             row.setTextColor(R.id.widget_session_project,
                 themeColor(palette, "primary", light ? 0xffb35017 : BRAND));
-            String agent = clean(item.optString("agent"), 20);
-            if (!agent.isEmpty()) {
-                row.setViewVisibility(R.id.widget_session_agent, View.VISIBLE);
-                row.setTextViewText(R.id.widget_session_agent, agent);
-                row.setTextColor(R.id.widget_session_agent,
-                    themeColor(palette, "primary", light ? 0xffb35017 : BRAND));
-            }
             String github = clean(item.optString("github"), 52);
             String branch = clean(item.optString("branch"), 52);
             if (!github.isEmpty() || !branch.isEmpty()) {

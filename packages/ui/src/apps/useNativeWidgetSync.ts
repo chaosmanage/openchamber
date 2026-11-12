@@ -118,7 +118,6 @@ const sessionSnapshot = async () => {
         directory: session.directory ?? '',
         name: short(session.title || 'Untitled session', 95),
         project: short(project, 35),
-        agent: short(session.agent || '', 20),
         status,
         ...(repo.github ? { github: repo.github } : {}),
         ...(repo.branch ? { branch: repo.branch } : {}),
