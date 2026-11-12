@@ -105,7 +105,8 @@ final class WidgetRenderer {
                     line.setTextColor(R.id.quota_provider_initial, providerColor(id));
                     int icon = providerLogo(id);
                     if (icon != 0) {
-                        line.setViewVisibility(R.id.quota_provider_initial, View.INVISIBLE);
+                        // Keep the rounded badge background behind the reused SDK SVG.
+                        line.setTextViewText(R.id.quota_provider_initial, "");
                         line.setViewVisibility(R.id.quota_provider_logo, View.VISIBLE);
                         line.setImageViewResource(R.id.quota_provider_logo, icon);
                     }
@@ -258,6 +259,10 @@ final class WidgetRenderer {
             String project = clean(item.optString("project"), 30);
             row.setTextViewText(R.id.widget_session_project,
                 project.isEmpty() ? "Session" : "▣  " + project);
+            // A project receives a repeatable accent, distinct from the state badge.
+            int[] projectColors = new int[] { PURPLE, BLUE, GREEN, AMBER };
+            row.setTextColor(R.id.widget_session_project,
+                project.isEmpty() ? MUTED : projectColors[Math.floorMod(project.hashCode(), projectColors.length)]);
             String agent = clean(item.optString("agent"), 20);
             if (agent.isEmpty()) row.setViewVisibility(R.id.widget_session_agent, View.GONE);
             else row.setTextViewText(R.id.widget_session_agent, agent);

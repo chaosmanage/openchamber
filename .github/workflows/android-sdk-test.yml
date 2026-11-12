@@ -23,6 +23,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Build Android SDK Test APK
+        env:
+          OPENCHAMBER_ANDROID_VERSION_CODE: ${{ github.run_number }}
+          OPENCHAMBER_ANDROID_VERSION_NAME: 2.7.0-sdk-test.${{ github.run_number }}
         run: bun run mobile:build:android:debug
       - name: Upload test APK
         uses: actions/upload-artifact@v4
