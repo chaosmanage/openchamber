@@ -3,28 +3,40 @@
     android:id="@+id/widget_session_root"
     android:layout_width="match_parent" android:layout_height="wrap_content"
     android:gravity="center_vertical" android:orientation="horizontal"
-    android:paddingTop="6dp" android:paddingBottom="6dp">
-    <TextView android:id="@+id/widget_session_badge"
-        android:layout_width="67dp" android:layout_height="wrap_content"
-        android:gravity="center" android:textSize="10sp"
-        android:textStyle="bold" android:maxLines="1" android:padding="5dp"
-        android:background="@drawable/widget_provider_badge"/>
+    android:minHeight="63dp" android:paddingTop="7dp" android:paddingBottom="7dp">
+    <View android:id="@+id/widget_session_accent"
+        android:layout_width="3dp" android:layout_height="42dp"
+        android:background="#8E7BB8"/>
     <LinearLayout android:layout_width="0dp" android:layout_weight="1"
-        android:layout_height="wrap_content" android:layout_marginLeft="8dp"
+        android:layout_height="wrap_content" android:layout_marginLeft="9dp"
         android:orientation="vertical">
         <TextView android:id="@+id/widget_session_name"
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:ellipsize="end" android:maxLines="1"
-            android:textStyle="bold" android:textSize="11sp" android:textColor="#E5E7EB"/>
-        <TextView android:id="@+id/widget_session_project"
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:ellipsize="end" android:maxLines="1"
-            android:textSize="10sp" android:textColor="#9CA3AF"/>
+            android:textStyle="bold" android:textSize="14sp" android:textColor="#F1F1F2"/>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:layout_marginTop="3dp">
+            <TextView android:id="@+id/widget_session_project"
+                android:layout_width="0dp" android:layout_weight="1"
+                android:layout_height="wrap_content" android:ellipsize="end"
+                android:maxLines="1" android:textStyle="bold"
+                android:textSize="11sp" android:textColor="#B8C4D5"/>
+            <TextView android:id="@+id/widget_session_agent"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginLeft="5dp" android:maxWidth="68dp"
+                android:ellipsize="end" android:maxLines="1"
+                android:paddingLeft="5dp" android:paddingRight="5dp"
+                android:paddingTop="3dp" android:paddingBottom="3dp"
+                android:gravity="center" android:textColor="#CFC4E4" android:textSize="10sp"
+                android:background="@drawable/widget_provider_badge"/>
+        </LinearLayout>
     </LinearLayout>
-    <TextView android:id="@+id/widget_session_agent"
+    <TextView android:id="@+id/widget_session_badge"
         android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:maxWidth="53dp" android:ellipsize="end" android:maxLines="1"
-        android:padding="5dp" android:gravity="center"
-        android:textColor="#CFC4E4" android:textSize="9sp"
+        android:minWidth="49dp" android:gravity="center" android:layout_marginLeft="7dp"
+        android:textSize="11sp" android:textStyle="bold"
+        android:maxLines="1" android:paddingLeft="7dp" android:paddingRight="7dp"
+        android:paddingTop="6dp" android:paddingBottom="6dp"
         android:background="@drawable/widget_provider_badge"/>
 </LinearLayout>

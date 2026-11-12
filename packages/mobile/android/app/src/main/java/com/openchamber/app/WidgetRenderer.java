@@ -5,6 +5,9 @@ import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
+import java.util.ArrayList;
+import java.util.List;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -34,6 +37,7 @@ final class WidgetRenderer {
     private static final int RED = Color.rgb(235, 99, 103);
     private static final int BLUE = Color.rgb(116, 183, 242);
     private static final int PURPLE = Color.rgb(183, 156, 227);
+    static final String NEXT_USAGE_ACTION = "com.openchamber.app.action.NEXT_USAGE";
 
     static void refresh(Context context) {
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
@@ -59,6 +63,7 @@ final class WidgetRenderer {
         view.removeAllViews(R.id.widget_rows);
         JSONArray rows = data.optJSONArray("rows");
         int count = rows == null ? 0 : rows.length();
+        final int heightDp = widgetHeight(context, widgetId);
         if (count == 0) {
             RemoteViews line = new RemoteViews(context.getPackageName(), R.layout.widget_line);
             line.setTextViewText(R.id.widget_line_name, "Open OpenChamber to sync");
@@ -66,38 +71,117 @@ final class WidgetRenderer {
             line.setViewVisibility(R.id.widget_line_progress, View.GONE);
             view.addView(R.id.widget_rows, line);
         } else if (usage) {
-            usageRows(context, view, rows);
+            usageRows(context, view, rows, widgetId, heightDp);
         } else {
-            sessionRows(context, view, rows, widgetId);
+            sessionRows(context, view, rows, widgetId, heightDp);
         }
         String updated = clean(data.optString("updated"), 75);
         view.setTextViewText(R.id.widget_timestamp,
             updated.isEmpty() ? "Not synced" : "Synced " + updated);
         if (usage) {
             String mode = "used".equals(data.optString("mode")) ? "used" : "remaining";
-            view.setTextViewText(R.id.widget_subtitle, mode + " · " + count + " providers");
+            view.setTextViewText(R.id.widget_subtitle, mode);
         } else {
-            view.setTextViewText(R.id.widget_subtitle, count + " recent");
+            view.setTextViewText(R.id.widget_subtitle, count + " total");
             view.setOnClickPendingIntent(R.id.widget_new_session,
                 open(context, "openchamber://new", widgetId * 1000 + 99));
         }
         return view;
     }
 
-    private static void usageRows(Context context, RemoteViews root, JSONArray groups) {
-        // Each provider's meters occupy exactly two equally weighted columns.
-        // Never combine several quota percentages into one ring.
-        int groupCount = Math.min(10, groups.length());
-        for (int groupIndex = 0; groupIndex < groupCount; groupIndex++) {
+    /**
+     * Use the launcher-provided widget height to decide how many rows fit.
+     * The first page is intentionally compact. The next-arrow cycles through
+     * every selected provider without requiring the full-screen widget.
+     */
+    private static int widgetHeight(Context context, int widgetId) {
+        Bundle options = AppWidgetManager.getInstance(context).getAppWidgetOptions(widgetId);
+        int height = options == null ? 0
+            : options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0);
+        return height > 0 ? height : 260;
+    }
+
+    private static List<JSONObject> measurableRows(JSONObject group) {
+        ArrayList<JSONObject> result = new ArrayList<>();
+        JSONArray rows = group.optJSONArray("rows");
+        if (rows == null) return result;
+        for (int i = 0; i < rows.length(); i++) {
+            JSONObject item = rows.optJSONObject(i);
+            if (item == null) continue;
+            double pct = item.optDouble("percent", Double.NaN);
+            if (Double.isFinite(pct)) result.add(item);
+        }
+        return result;
+    }
+
+    private static int quotaRows(JSONObject group) {
+        int size = measurableRows(group).size();
+        return Math.max(1, (size + 1) / 2);
+    }
+
+    /** Group pages at provider boundaries, never splitting one provider's windows. */
+    private static List<int[]> providerPages(JSONArray groups, int rowBudget) {
+        ArrayList<int[]> pages = new ArrayList<>();
+        int start = 0;
+        int used = 0;
+        for (int index = 0; index < groups.length(); index++) {
+            JSONObject group = groups.optJSONObject(index);
+            int size = group == null ? 1 : quotaRows(group);
+            if (used > 0 && used + size > rowBudget) {
+                pages.add(new int[] { start, index });
+                start = index;
+                used = 0;
+            }
+            used += size;
+        }
+        if (groups.length() > start) pages.add(new int[] { start, groups.length() });
+        return pages;
+    }
+
+    private static void usageRows(Context context, RemoteViews root, JSONArray groups,
+                                  int widgetId, int heightDp) {
+        final int rowBudget = Math.max(1, Math.min(8, (heightDp - 78) / 71));
+        final List<int[]> pages = providerPages(groups, rowBudget);
+        if (pages.isEmpty()) return;
+        int storedPage = context.getSharedPreferences("oc_sdk_widgets", Context.MODE_PRIVATE)
+            .getInt("usage_page_" + widgetId, 0);
+        int page = Math.floorMod(storedPage, pages.size());
+        if (pages.size() > 1) {
+            root.setTextViewText(R.id.widget_subtitle, (page + 1) + "/" + pages.size());
+            root.setViewVisibility(R.id.widget_page_next, View.VISIBLE);
+            Intent intent = new Intent(context, UsageWidgetProvider.class);
+            intent.setAction(NEXT_USAGE_ACTION);
+            intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId);
+            root.setOnClickPendingIntent(R.id.widget_page_next,
+                PendingIntent.getBroadcast(context, widgetId * 1000 + 44, intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+        } else {
+            root.setViewVisibility(R.id.widget_page_next, View.GONE);
+        }
+
+        int[] bounds = pages.get(page);
+        for (int groupIndex = bounds[0]; groupIndex < bounds[1]; groupIndex++) {
             JSONObject group = groups.optJSONObject(groupIndex);
             if (group == null) continue;
-            JSONArray meters = group.optJSONArray("rows");
-            if (meters == null || meters.length() == 0) continue;
+            List<JSONObject> meters = measurableRows(group);
             String name = clean(group.optString("name"), 48);
             String id = group.optString("id");
-            int index = 0;
-            // Two gauges per physical row; Antigravity's four windows => two rows.
-            while (index < meters.length() && index < 12) {
+            String balance = "";
+            JSONArray allRows = group.optJSONArray("rows");
+            if (allRows != null) {
+                for (int i = 0; i < allRows.length(); i++) {
+                    JSONObject item = allRows.optJSONObject(i);
+                    if (item != null && !Double.isFinite(item.optDouble("percent", Double.NaN))) {
+                        String text = item.optString("value");
+                        if (item.optString("label").toLowerCase(Locale.ROOT).contains("balance")
+                            && !text.isEmpty()) balance = "Credits " + text;
+                    }
+                }
+            }
+
+            // Provider column takes a fixed width; both quota columns take
+            // exactly half the remainder, with the ring/label horizontal.
+            for (int index = 0; index < Math.max(1, meters.size()); index += 2) {
                 RemoteViews line = new RemoteViews(context.getPackageName(), R.layout.widget_quota_row);
                 if (index == 0) {
                     line.setTextViewText(R.id.quota_provider_initial, providerInitial(id, name));
@@ -105,25 +189,28 @@ final class WidgetRenderer {
                     line.setTextColor(R.id.quota_provider_initial, providerColor(id));
                     int icon = providerLogo(id);
                     if (icon != 0) {
-                        // Keep the rounded badge background behind the reused SDK SVG.
                         line.setTextViewText(R.id.quota_provider_initial, "");
                         line.setViewVisibility(R.id.quota_provider_logo, View.VISIBLE);
                         line.setImageViewResource(R.id.quota_provider_logo, icon);
                     }
+                    if (!balance.isEmpty()) {
+                        line.setViewVisibility(R.id.quota_provider_extra, View.VISIBLE);
+                        line.setTextViewText(R.id.quota_provider_extra, clean(balance, 25));
+                    }
                 } else {
-                    // Keep the provider column reserved to line up every gauge.
                     line.setViewVisibility(R.id.quota_provider_initial, View.INVISIBLE);
                     line.setViewVisibility(R.id.quota_provider_logo, View.INVISIBLE);
                     line.setViewVisibility(R.id.quota_provider_name, View.INVISIBLE);
+                    line.setViewVisibility(R.id.quota_provider_extra, View.GONE);
                 }
                 line.removeAllViews(R.id.quota_metrics);
                 for (int column = 0; column < 2; column++) {
                     RemoteViews metric = new RemoteViews(context.getPackageName(), R.layout.widget_quota_metric);
-                    JSONObject item = index + column < meters.length() ? meters.optJSONObject(index + column) : null;
+                    JSONObject item = index + column < meters.size() ? meters.get(index + column) : null;
                     if (item == null) {
                         metric.setViewVisibility(R.id.quota_ring, View.INVISIBLE);
                         metric.setViewVisibility(R.id.quota_label, View.INVISIBLE);
-                        metric.setViewVisibility(R.id.quota_reset, View.INVISIBLE);
+                        metric.setViewVisibility(R.id.quota_reset, View.GONE);
                         metric.setViewVisibility(R.id.quota_detail, View.GONE);
                     } else {
                         double percentage = item.optDouble("percent", Double.NaN);
@@ -134,46 +221,50 @@ final class WidgetRenderer {
                         int color = !Double.isFinite(remaining) ? MUTED
                             : remaining < 20 ? RED : remaining < 50 ? AMBER : GREEN;
                         metric.setImageViewBitmap(R.id.quota_ring, ring(context, percentage, value, color));
-                        String label = compactLabel(item.optString("label"));
-                        metric.setTextViewText(R.id.quota_label, label);
+                        metric.setTextViewText(R.id.quota_label, compactLabel(item.optString("label")));
                         String reset = resetLabel(item.optLong("resetAt", 0));
                         if (reset.isEmpty()) metric.setViewVisibility(R.id.quota_reset, View.GONE);
                         else metric.setTextViewText(R.id.quota_reset, reset);
                         String detail = clean(item.optString("detail"), 40);
                         if (detail.isEmpty() || detail.equals(value)) {
                             metric.setViewVisibility(R.id.quota_detail, View.GONE);
-                        } else {
-                            metric.setTextViewText(R.id.quota_detail, detail);
-                        }
+                        } else metric.setTextViewText(R.id.quota_detail,
+                            detail.replace(" / ", "/").replace(" used", ""));
                     }
                     line.addView(R.id.quota_metrics, metric);
                 }
                 root.addView(R.id.widget_rows, line);
-                index += 2;
             }
         }
     }
 
+    /** Next-page action is scoped to one widget instance. */
+    static void nextPage(Context context, int widgetId) {
+        String key = "usage_page_" + widgetId;
+        int page = context.getSharedPreferences("oc_sdk_widgets", Context.MODE_PRIVATE).getInt(key, 0);
+        context.getSharedPreferences("oc_sdk_widgets", Context.MODE_PRIVATE)
+            .edit().putInt(key, page + 1).apply();
+        AppWidgetManager manager = AppWidgetManager.getInstance(context);
+        manager.updateAppWidget(widgetId, render(context, true, widgetId));
+    }
+
     private static String compactLabel(String raw) {
-        String label = raw.replace(" · ", "\n")
-            .replace("5-Hour", "5h")
-            .replace("5-hour", "5h")
-            .replace("Credits balance", "Credit balance");
-        // A pair of labels stays distinct for the Google and non-Google families.
-        label = label.replace("Non-Google Models", "Non-Google")
-            .replace("Google Models", "Google Models");
-        // Preserve the two-line family/window split on narrow widget cells.
-        return label.length() > 48 ? label.substring(0, 47) + "…" : label;
+        // Same quota identities as the Usage SDK panel, shortened for a phone.
+        String label = raw.replace("Non-Google Models · ", "Non-Google ")
+            .replace("Google Models · ", "Google ")
+            .replace("5-Hour", "5h").replace("5-hour", "5h")
+            .replace("7d", "Weekly").replace("Credits balance", "Credits");
+        return label.length() > 28 ? label.substring(0, 27) + "…" : label;
     }
 
     private static Bitmap ring(Context context, double percent, String value, int foreground) {
         float density = context.getResources().getDisplayMetrics().density;
         float sp = context.getResources().getDisplayMetrics().scaledDensity;
-        int size = Math.max(48, Math.round(52 * density));
+        int size = Math.max(72, Math.round(72 * density));
         Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         float center = size / 2f;
-        float stroke = Math.max(3f, 4.5f * density);
+        float stroke = Math.max(5f, 6.5f * density);
         float radius = center - stroke / 2f - 1.5f * density;
 
         Paint track = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -196,7 +287,7 @@ final class WidgetRenderer {
         text.setColor(FG);
         String number = clean(value, 12);
         if (number.endsWith("%") && number.length() > 5) number = number.substring(0, 4) + "%";
-        float font = (number.length() > 5 ? 8.2f : number.length() > 4 ? 9.8f : 11f) * sp;
+        float font = (number.length() > 5 ? 14f : number.length() > 4 ? 16.5f : 19f) * sp;
         text.setTextSize(font);
         text.setTextAlign(Paint.Align.CENTER);
         canvas.drawText(number, center, center - (text.ascent() + text.descent()) / 2, text);
@@ -242,8 +333,12 @@ final class WidgetRenderer {
         return FG;
     }
 
-    private static void sessionRows(Context context, RemoteViews root, JSONArray sessions, int widgetId) {
-        for (int i = 0; i < Math.min(6, sessions.length()); i++) {
+    private static void sessionRows(Context context, RemoteViews root, JSONArray sessions,
+                                    int widgetId, int heightDp) {
+        int maxRows = Math.min(6, Math.max(2, (heightDp - 88) / 60));
+        root.setTextViewText(R.id.widget_subtitle,
+            Math.min(maxRows, sessions.length()) + "/" + sessions.length());
+        for (int i = 0; i < Math.min(maxRows, sessions.length()); i++) {
             JSONObject item = sessions.optJSONObject(i);
             if (item == null) continue;
             RemoteViews row = new RemoteViews(context.getPackageName(), R.layout.widget_session_row);
@@ -254,15 +349,16 @@ final class WidgetRenderer {
                 : status.equals("Done") ? "✓ " : status.equals("Failed") ? "× " : "◷ ";
             row.setTextViewText(R.id.widget_session_badge, mark + status);
             row.setTextColor(R.id.widget_session_badge, color);
+            row.setInt(R.id.widget_session_accent, "setBackgroundColor",
+                status.equals("Recent") ? projectAccent(item.optString("project")) : color);
             row.setTextViewText(R.id.widget_session_name, clean(item.optString("name"), 90));
 
             String project = clean(item.optString("project"), 30);
             row.setTextViewText(R.id.widget_session_project,
                 project.isEmpty() ? "Session" : "▣  " + project);
             // A project receives a repeatable accent, distinct from the state badge.
-            int[] projectColors = new int[] { PURPLE, BLUE, GREEN, AMBER };
             row.setTextColor(R.id.widget_session_project,
-                project.isEmpty() ? MUTED : projectColors[Math.floorMod(project.hashCode(), projectColors.length)]);
+                project.isEmpty() ? MUTED : projectAccent(project));
             String agent = clean(item.optString("agent"), 20);
             if (agent.isEmpty()) row.setViewVisibility(R.id.widget_session_agent, View.GONE);
             else row.setTextViewText(R.id.widget_session_agent, agent);
@@ -277,6 +373,11 @@ final class WidgetRenderer {
             }
             root.addView(R.id.widget_rows, row);
         }
+    }
+
+    private static int projectAccent(String project) {
+        int[] colors = new int[] { PURPLE, BLUE, GREEN, AMBER };
+        return colors[Math.floorMod(project.hashCode(), colors.length)];
     }
 
     private static String clean(String raw, int limit) {
