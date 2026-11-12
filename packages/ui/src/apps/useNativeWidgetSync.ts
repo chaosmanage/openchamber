@@ -9,6 +9,7 @@ import { useGlobalSessionsStore } from '@/stores/useGlobalSessionsStore';
 import { useGlobalSessionStatusStore } from '@/sync/global-session-status';
 import { useQuotaStore } from '@/stores/useQuotaStore';
 import { createWidgetUsageSnapshot } from './widgetUsageSnapshot';
+import { WidgetCompletionTracker } from './widgetSessionStatus';
 import { useGitStore } from '@/stores/useGitStore';
 
 type WidgetBridge = {
@@ -87,6 +88,8 @@ const repoForDirectory = async (directory: string): Promise<WidgetRepo> => {
   return value;
 };
 
+const widgetCompletionTracker = new WidgetCompletionTracker();
+
 const sessionSnapshot = async () => {
   const globals = useGlobalSessionsStore.getState();
   const live = useGlobalSessionStatusStore.getState();
@@ -106,11 +109,12 @@ const sessionSnapshot = async () => {
   ))));
   const rows = sessions.map((session) => {
       const active = live.statusById.get(session.id)?.status.type;
-      const outcome = live.observedById.get(session.id)?.outcome;
-      const status = active === 'retry' ? 'Retrying'
-        : live.activeSessionIds.has(session.id) ? 'Running'
-        : outcome === 'completed' ? 'Done'
-        : outcome === 'failed' ? 'Failed' : 'Idle';
+      const completion = widgetCompletionTracker.resolve(
+        session.id,
+        live.activeSessionIds.has(session.id),
+        active === 'retry',
+        live.observedById.get(session.id),
+      );
       const project = session.directory?.split(/[\\/]/).filter(Boolean).slice(-1)[0] ?? '';
       const repo = repoByDirectory.get(session.directory) ?? {};
       return {
@@ -118,11 +122,12 @@ const sessionSnapshot = async () => {
         directory: session.directory ?? '',
         name: short(session.title || 'Untitled session', 95),
         project: short(project, 35),
-        status,
+        ...completion,
         ...(repo.github ? { github: repo.github } : {}),
         ...(repo.branch ? { branch: repo.branch } : {}),
       };
     });
+  widgetCompletionTracker.retain(sessions.map((session) => session.id));
   return { updated: updatedLabel(), rows };
 };
 

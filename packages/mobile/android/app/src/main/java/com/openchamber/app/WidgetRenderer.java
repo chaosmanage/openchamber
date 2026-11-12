@@ -66,6 +66,7 @@ final class WidgetRenderer {
                 manager.notifyAppWidgetViewDataChanged(ids, R.id.widget_sessions_list);
             }
         }
+        WidgetDoneExpiryScheduler.reschedule(context);
     }
 
     static RemoteViews render(Context context, boolean usage, int widgetId) {
@@ -446,6 +447,11 @@ final class WidgetRenderer {
             // an unseen turn completed successfully. Older snapshots said Recent.
             String status = item.optString("status", "Idle");
             if ("Recent".equals(status)) status = "Idle";
+            // Done is a short-lived completion signal, not a permanent label.
+            // The native clock check also works without a connected WebView.
+            if ("Done".equals(status) && item.optLong("doneUntil", 0L) <= System.currentTimeMillis()) {
+                status = "Idle";
+            }
             int color = status.equals("Running") ? themeColor(palette, "info", BLUE)
                 : status.equals("Retrying") ? themeColor(palette, "warning", AMBER)
                 : status.equals("Done") ? themeColor(palette, "success", GREEN)
@@ -453,10 +459,15 @@ final class WidgetRenderer {
                 : themeColor(palette, "muted", MUTED);
             String mark = status.equals("Running") ? "● " : status.equals("Retrying") ? "↻ "
                 : status.equals("Done") ? "✓ " : status.equals("Failed") ? "× " : "◷ ";
-            // Every row has a plainly readable status. Only explicitly
-            // observed outcomes become Done/Failed, never an inferred success.
-            row.setTextViewText(R.id.widget_session_badge, status.equals("Idle") ? "Idle" : mark + status);
-            row.setTextColor(R.id.widget_session_badge, color);
+            // Highlight exceptions and newly completed turns. Once a completion
+            // expires the session becomes Idle with no repetitive text chip,
+            // giving its title the full available width.
+            if ("Idle".equals(status)) {
+                row.setViewVisibility(R.id.widget_session_status_column, View.GONE);
+            } else {
+                row.setTextViewText(R.id.widget_session_badge, mark + status);
+                row.setTextColor(R.id.widget_session_badge, color);
+            }
             // A low-saturation full-row tint complements the clear status tag,
             // instead of relying on a thin colored stripe as the only signal.
             int base = light ? 0xfff3f2f0 : 0xff1b1918;

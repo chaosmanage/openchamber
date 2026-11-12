@@ -41,8 +41,8 @@
                 android:background="@drawable/widget_session_branch_bg_light"/>
         </LinearLayout>
     </LinearLayout>
-    <LinearLayout android:layout_width="88dp"
-        android:layout_height="match_parent" android:layout_marginLeft="6dp"
+    <LinearLayout android:id="@+id/widget_session_status_column"
+        android:layout_width="88dp" android:layout_height="match_parent" android:layout_marginLeft="6dp"
         android:gravity="center_vertical|right" android:orientation="vertical">
         <!-- A plain TextView is reliable inside Android collection widgets.
              Status is never contingent on a nested bitmap overlay. -->
