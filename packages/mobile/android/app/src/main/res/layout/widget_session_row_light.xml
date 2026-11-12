@@ -41,7 +41,7 @@
                 android:background="@drawable/widget_session_branch_bg_light"/>
         </LinearLayout>
     </LinearLayout>
-    <LinearLayout android:layout_width="78dp"
+    <LinearLayout android:layout_width="88dp"
         android:layout_height="51dp" android:layout_marginLeft="6dp"
         android:gravity="top|right" android:orientation="vertical">
         <FrameLayout android:layout_width="match_parent" android:layout_height="25dp">
@@ -50,7 +50,7 @@
                 android:contentDescription="Session status"/>
             <TextView android:id="@+id/widget_session_badge"
                 android:layout_width="match_parent" android:layout_height="match_parent"
-                android:gravity="center" android:textSize="11sp"
+                android:gravity="center" android:textSize="12sp"
                 android:textStyle="bold" android:maxLines="1"
                 android:paddingLeft="4dp" android:paddingRight="4dp"/>
         </FrameLayout>

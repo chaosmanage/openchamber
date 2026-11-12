@@ -110,7 +110,7 @@ const sessionSnapshot = async () => {
       const status = active === 'retry' ? 'Retrying'
         : live.activeSessionIds.has(session.id) ? 'Running'
         : outcome === 'completed' ? 'Done'
-        : outcome === 'failed' ? 'Failed' : 'Recent';
+        : outcome === 'failed' ? 'Failed' : 'Idle';
       const project = session.directory?.split(/[\\/]/).filter(Boolean).slice(-1)[0] ?? '';
       const repo = repoByDirectory.get(session.directory) ?? {};
       return {

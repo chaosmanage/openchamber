@@ -3,6 +3,8 @@ import React from 'react';
 import { isCapacitorApp } from '@/lib/platform';
 import { subscribeToNativeShortcutRequests } from '@/lib/nativeShortcutRequests';
 import { useProjectsStore } from '@/stores/useProjectsStore';
+import { useQuotaStore } from '@/stores/useQuotaStore';
+import type { QuotaProviderId } from '@/types';
 import { useInputStore } from '@/sync/input-store';
 import { useSessionUIStore } from '@/sync/session-ui-store';
 import { openSession } from '@/lib/router/openSessionFromRoute';
@@ -116,6 +118,11 @@ const execute = (intent: NavigationIntent): boolean => {
 
     case 'settings':
       if (!handlers.openSettings) return false;
+      // Use the same selector as the built-in Usage page rather than routing to
+      // a separate per-provider screen. The intent is deferred until connected.
+      if (intent.section === 'usage' && intent.providerId) {
+        useQuotaStore.getState().setSelectedProvider(intent.providerId as QuotaProviderId);
+      }
       handlers.openSettings(intent.section);
       return true;
   }

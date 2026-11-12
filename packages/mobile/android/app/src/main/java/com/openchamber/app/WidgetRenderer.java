@@ -94,8 +94,6 @@ final class WidgetRenderer {
         JSONArray rows = data.optJSONArray("rows");
         int count = rows == null ? 0 : rows.length();
         if (usage) {
-            view.setOnClickPendingIntent(R.id.widget_rows,
-                open(context, "openchamber://settings/usage", widgetId * 100 + 1));
             view.removeAllViews(R.id.widget_rows);
             if (count == 0) {
                 RemoteViews line = new RemoteViews(context.getPackageName(),
@@ -247,6 +245,13 @@ final class WidgetRenderer {
             RemoteViews line = new RemoteViews(context.getPackageName(),
                 narrow ? (light ? R.layout.widget_quota_row_narrow_light : R.layout.widget_quota_row_narrow)
                        : (light ? R.layout.widget_quota_row_light : R.layout.widget_quota_row));
+            // Tapping either the provider name or any of its gauges opens that
+            // provider's existing Usage page; no separate SDK screen required.
+            if (!id.isEmpty()) {
+                line.setOnClickPendingIntent(R.id.widget_quota_row_root,
+                    open(context, "openchamber://settings/usage?provider=" + Uri.encode(id),
+                        widgetId * 1000 + 300 + lineNum));
+            }
             line.setTextViewText(R.id.quota_provider_initial, providerInitial(id, name));
             line.setTextViewText(R.id.quota_provider_name, name);
             // The default 12sp wraps just the final 'y' of Antigravity on
@@ -437,7 +442,10 @@ final class WidgetRenderer {
         boolean light = isLight(palette);
             RemoteViews row = new RemoteViews(context.getPackageName(),
                 light ? R.layout.widget_session_row_light : R.layout.widget_session_row);
-            String status = item.optString("status", "Recent");
+            // "Idle" means no live work is observed; it does NOT infer that
+            // an unseen turn completed successfully. Older snapshots said Recent.
+            String status = item.optString("status", "Idle");
+            if ("Recent".equals(status)) status = "Idle";
             int color = status.equals("Running") ? themeColor(palette, "info", BLUE)
                 : status.equals("Retrying") ? themeColor(palette, "warning", AMBER)
                 : status.equals("Done") ? themeColor(palette, "success", GREEN)
@@ -445,16 +453,17 @@ final class WidgetRenderer {
                 : themeColor(palette, "muted", MUTED);
             String mark = status.equals("Running") ? "● " : status.equals("Retrying") ? "↻ "
                 : status.equals("Done") ? "✓ " : status.equals("Failed") ? "× " : "◷ ";
-            if ("Recent".equals(status)) {
-                row.setViewVisibility(R.id.widget_session_badge, View.INVISIBLE);
-                row.setViewVisibility(R.id.widget_session_status_surface, View.INVISIBLE);
-            } else {
-                row.setTextViewText(R.id.widget_session_badge, mark + status);
-                row.setTextColor(R.id.widget_session_badge, color);
-                row.setImageViewBitmap(R.id.widget_session_status_surface,
-                    statusPill(context, color, light));
-            }
-            // Color always means status, never a random per-project hash.
+            // Every row has a plainly readable status. Only explicitly
+            // observed outcomes become Done/Failed, never an inferred success.
+            row.setTextViewText(R.id.widget_session_badge, status.equals("Idle") ? "Idle" : mark + status);
+            row.setTextColor(R.id.widget_session_badge, color);
+            row.setImageViewBitmap(R.id.widget_session_status_surface,
+                statusPill(context, color, light));
+            // A low-saturation full-row tint complements the clear status tag,
+            // instead of relying on a thin colored stripe as the only signal.
+            int base = light ? 0xfff3f2f0 : 0xff1b1918;
+            row.setInt(R.id.widget_session_root, "setBackgroundColor",
+                blendColor(base, color, "Idle".equals(status) ? 0.035f : (light ? 0.16f : 0.21f)));
             row.setInt(R.id.widget_session_accent, "setBackgroundColor", color);
             row.setTextViewText(R.id.widget_session_name, clean(item.optString("name"), 90));
             row.setTextColor(R.id.widget_session_name,
@@ -503,18 +512,23 @@ final class WidgetRenderer {
         return row;
     }
 
+    private static int blendColor(int base, int accent, float weight) {
+        float other = 1f - weight;
+        return Color.rgb(
+            Math.round(Color.red(base) * other + Color.red(accent) * weight),
+            Math.round(Color.green(base) * other + Color.green(accent) * weight),
+            Math.round(Color.blue(base) * other + Color.blue(accent) * weight));
+    }
+
     /** Compact, rounded status chip with a meaningful color-matched fill. */
     private static Bitmap statusPill(Context context, int accent, boolean light) {
         float density = context.getResources().getDisplayMetrics().density;
-        int width = Math.max(78, Math.round(78 * density));
+        int width = Math.max(88, Math.round(88 * density));
         int height = Math.max(25, Math.round(25 * density));
         Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         int surface = light ? 0xfff3f2f0 : 0xff1b1918;
-        int fill = Color.rgb(
-            Math.round(Color.red(surface) * 0.74f + Color.red(accent) * 0.26f),
-            Math.round(Color.green(surface) * 0.74f + Color.green(accent) * 0.26f),
-            Math.round(Color.blue(surface) * 0.74f + Color.blue(accent) * 0.26f));
+        int fill = blendColor(surface, accent, 0.38f);
         float radius = 10f * density;
         RectF bounds = new RectF(1f, 1f, width - 1f, height - 1f);
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
