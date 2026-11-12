@@ -12,7 +12,7 @@ android {
     namespace "com.openchamber.app"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.openchamber.app"
+        applicationId "com.openchamber.app.sdktest"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode ciVersionCode ? ciVersionCode.toInteger() : 1
@@ -69,7 +69,8 @@ apply from: 'capacitor.build.gradle'
 
 try {
     def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
+    // Experimental side-by-side package has no matching Firebase client; leave official config untouched.
+    if (false && servicesJSON.text) {
         apply plugin: 'com.google.gms.google-services'
     }
 } catch(Exception e) {

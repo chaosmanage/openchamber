@@ -1,6 +1,6 @@
 {
-  "appId": "com.openchamber.app",
-  "appName": "OpenChamber",
+  "appId": "com.openchamber.app.sdktest",
+  "appName": "OpenChamber SDK Test",
   "webDir": "dist",
   "server": {
     "androidScheme": "https"

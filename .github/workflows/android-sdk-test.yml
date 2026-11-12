@@ -1,0 +1,32 @@
+name: Android SDK Test APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Build Android SDK Test APK
+        run: bun run mobile:build:android:debug
+      - name: Upload test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenChamber-SDK-Test-Android
+          path: packages/mobile/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
