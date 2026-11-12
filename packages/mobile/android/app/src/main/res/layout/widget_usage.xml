@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
     android:layout_width="match_parent" android:layout_height="match_parent"
     android:orientation="vertical" android:background="@drawable/widget_background"
     android:padding="12dp">
@@ -13,20 +14,20 @@
             android:layout_height="wrap_content" android:orientation="vertical"
             android:layout_marginLeft="7dp">
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="OpenChamber" android:textColor="#F1F1F2"
+                android:id="@+id/widget_brand" android:text="OpenChamber" android:textColor="#dbd7cc"
                 android:textStyle="bold" android:textSize="14sp"/>
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="USAGE" android:textColor="#AC9DBE"
+                android:id="@+id/widget_section_label" android:text="USAGE" android:textColor="#da7c47"
                 android:letterSpacing="0.11" android:textStyle="bold" android:textSize="10sp"/>
         </LinearLayout>
         <TextView android:id="@+id/widget_subtitle"
             android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:textColor="#AFB0BA" android:textSize="11sp"
+            android:textColor="#89867c" android:textSize="11sp"
             android:gravity="center_vertical" android:maxLines="1"/>
         <TextView android:id="@+id/widget_page_next"
             android:layout_width="33dp" android:layout_height="34dp"
             android:gravity="center" android:visibility="gone"
-            android:text="›" android:textSize="26sp" android:textColor="#D2C5E6"
+            android:text="›" android:textSize="26sp" android:textColor="#da7c47"
             android:contentDescription="Next providers"/>
     </LinearLayout>
     <LinearLayout android:id="@+id/widget_rows"
@@ -39,8 +40,8 @@
         <TextView android:id="@+id/widget_timestamp"
             android:layout_width="0dp" android:layout_weight="1"
             android:layout_height="wrap_content" android:text="Not synced"
-            android:textColor="#9294A0" android:textSize="10sp"/>
+            android:textColor="#89867c" android:textSize="10sp"/>
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="Tap to open" android:textSize="10sp" android:textColor="#9294A0"/>
+            android:text="Tap to open" android:textSize="10sp" android:textColor="#89867c"/>
     </LinearLayout>
 </LinearLayout>

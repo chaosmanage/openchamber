@@ -3,6 +3,8 @@ import { registerPlugin } from '@capacitor/core';
 
 import { runtimeFetch } from '@/lib/runtime-fetch';
 import { getGitStatus, getRemotes } from '@/lib/gitApiHttp';
+import { useOptionalThemeSystem } from '@/contexts/useThemeSystem';
+import type { Theme } from '@/types/theme';
 import { getRuntimeKey } from '@/lib/runtime-switch';
 import { useGlobalSessionsStore } from '@/stores/useGlobalSessionsStore';
 import { useGlobalSessionStatusStore } from '@/sync/global-session-status';
@@ -39,6 +41,24 @@ const WidgetBridge = registerPlugin<WidgetBridge>('WidgetBridge');
 const short = (value: string, size: number) => value.length > size ? value.slice(0, size - 1) + '…' : value;
 const clamp = (value: number) => Math.max(0, Math.min(100, value));
 const updatedLabel = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+/** The native RemoteViews widget uses the active OpenChamber theme palette.
+ * Only display-safe color hexes are passed; themes never carry credentials. */
+const themePalette = (theme?: Theme) => {
+  const colors = theme?.colors;
+  return {
+    variant: theme?.metadata.variant === 'light' ? 'light' : 'dark',
+    primary: colors?.primary.base ?? '#da7c47',
+    foreground: colors?.surface.foreground ?? '#dbd7cc',
+    muted: colors?.surface.mutedForeground ?? '#89867c',
+    info: colors?.status.info ?? '#479fe6',
+    success: colors?.status.success ?? '#76ad4f',
+    warning: colors?.status.warning ?? '#c67f13',
+    error: colors?.status.error ?? '#da5b4a',
+  };
+};
+type WidgetPalette = ReturnType<typeof themePalette>;
+
 
 /**
  * Reuse the installed 'usage-bars' OpenChamber SDK extension service.
@@ -244,11 +264,11 @@ const sessionSnapshot = async () => {
   return { updated: updatedLabel(), rows };
 };
 
-const snapshot = async (): Promise<{ usage: string; sessions: string }> => {
+const snapshot = async (palette: WidgetPalette): Promise<{ usage: string; sessions: string }> => {
   const usage = await readSdkUsage() ?? fallbackUsage();
   return {
-    usage: JSON.stringify(usage),
-    sessions: JSON.stringify(await sessionSnapshot()),
+    usage: JSON.stringify({ ...usage, palette }),
+    sessions: JSON.stringify({ ...(await sessionSnapshot()), palette }),
   };
 };
 
@@ -257,6 +277,8 @@ const snapshot = async (): Promise<{ usage: string; sessions: string }> => {
  * snapshots contain only displayed quota/session information, never auth tokens.
  */
 export const useNativeWidgetSync = ({ enabled }: { enabled: boolean }): void => {
+  const activeTheme = useOptionalThemeSystem()?.currentTheme;
+  const palette = React.useMemo(() => themePalette(activeTheme), [activeTheme]);
   React.useEffect(() => {
     const platform = typeof window === 'undefined' ? undefined
       : (window as typeof window & { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.();
@@ -268,7 +290,7 @@ export const useNativeWidgetSync = ({ enabled }: { enabled: boolean }): void => 
       timer = null;
       if (disposed || writing) return;
       writing = true;
-      void snapshot().then((data) => {
+      void snapshot(palette).then((data) => {
         if (!disposed) return WidgetBridge.update(data);
       }).catch(() => undefined).finally(() => { writing = false; });
     };
@@ -296,5 +318,5 @@ export const useNativeWidgetSync = ({ enabled }: { enabled: boolean }): void => 
       document.removeEventListener('visibilitychange', onVisible);
       for (const unsubscribe of listeners) unsubscribe();
     };
-  }, [enabled]);
+  }, [enabled, palette]);
 };

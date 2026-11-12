@@ -37,6 +37,22 @@ final class WidgetRenderer {
     private static final int RED = Color.rgb(235, 99, 103);
     private static final int BLUE = Color.rgb(116, 183, 242);
     private static final int PURPLE = Color.rgb(183, 156, 227);
+    private static final int BRAND = Color.rgb(218, 124, 71);
+    private static final int BRANCH = Color.rgb(88, 171, 155);
+
+    /** All colors come from the connected OpenChamber theme, with branded fallbacks. */
+    private static int themeColor(JSONObject palette, String name, int fallback) {
+        if (palette == null) return fallback;
+        String hex = palette.optString(name, "");
+        if (!hex.matches("^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$")) return fallback;
+        try { return Color.parseColor(hex.substring(0, 7)); }
+        catch (IllegalArgumentException e) { return fallback; }
+    }
+
+    private static boolean isLight(JSONObject palette) {
+        return palette != null && "light".equals(palette.optString("variant"));
+    }
+
     static final String NEXT_USAGE_ACTION = "com.openchamber.app.action.NEXT_USAGE";
 
     static void refresh(Context context) {
@@ -50,12 +66,24 @@ final class WidgetRenderer {
     }
 
     static RemoteViews render(Context context, boolean usage, int widgetId) {
-        RemoteViews view = new RemoteViews(context.getPackageName(),
-            usage ? R.layout.widget_usage : R.layout.widget_sessions);
         String key = usage ? "usage" : "sessions";
         String saved = context.getSharedPreferences("oc_sdk_widgets", Context.MODE_PRIVATE).getString(key, "{}");
         JSONObject data;
         try { data = new JSONObject(saved); } catch (Exception e) { data = new JSONObject(); }
+        JSONObject palette = data.optJSONObject("palette");
+        boolean light = isLight(palette);
+        RemoteViews view = new RemoteViews(context.getPackageName(),
+            usage ? (light ? R.layout.widget_usage_light : R.layout.widget_usage)
+                  : (light ? R.layout.widget_sessions_light : R.layout.widget_sessions));
+        int primary = themeColor(palette, "primary", light ? 0xffb35017 : BRAND);
+        int foreground = themeColor(palette, "foreground", light ? 0xff44443d : 0xffdbd7cc);
+        int muted = themeColor(palette, "muted", light ? 0xff696960 : 0xff89867c);
+        view.setTextColor(R.id.widget_brand, foreground);
+        view.setTextColor(R.id.widget_section_label, primary);
+        view.setTextColor(R.id.widget_subtitle, muted);
+        view.setTextColor(R.id.widget_timestamp, muted);
+        if (usage) view.setTextColor(R.id.widget_page_next, primary);
+        else view.setTextColor(R.id.widget_new_session, light ? Color.WHITE : 0xff120f0e);
 
         view.setOnClickPendingIntent(R.id.widget_header,
             open(context, usage ? "openchamber://settings/usage" : "openchamber://sessions?filter=recent",
@@ -67,16 +95,17 @@ final class WidgetRenderer {
         int count = rows == null ? 0 : rows.length();
         final int heightDp = widgetHeight(context, widgetId);
         if (count == 0) {
-            RemoteViews line = new RemoteViews(context.getPackageName(), R.layout.widget_line);
+            RemoteViews line = new RemoteViews(context.getPackageName(),
+                light ? R.layout.widget_line_light : R.layout.widget_line);
             line.setTextViewText(R.id.widget_line_name, "Open OpenChamber to sync");
             line.setTextViewText(R.id.widget_line_detail, "Connect to your server");
             line.setViewVisibility(R.id.widget_line_progress, View.GONE);
             view.addView(R.id.widget_rows, line);
         } else if (usage) {
             usageRows(context, view, rows, widgetId, heightDp,
-                "used".equals(data.optString("mode")) ? "used" : "remaining");
+                "used".equals(data.optString("mode")) ? "used" : "remaining", palette);
         } else {
-            sessionRows(context, view, rows, widgetId, heightDp);
+            sessionRows(context, view, rows, widgetId, heightDp, palette);
         }
         String updated = clean(data.optString("updated"), 75);
         view.setTextViewText(R.id.widget_timestamp,
@@ -163,7 +192,7 @@ final class WidgetRenderer {
     }
 
     private static void usageRows(Context context, RemoteViews root, JSONArray groups,
-                                  int widgetId, int heightDp, String mode) {
+                                  int widgetId, int heightDp, String mode, JSONObject palette) {
         boolean narrow = widgetWidth(context, widgetId) < 300;
         // Reserve actual header, footer, and launcher inset; use enough height
         // for 2 legible rings and their two-line labels without clipping.
@@ -196,10 +225,14 @@ final class WidgetRenderer {
             JSONObject group = quota.provider;
             String name = clean(group.optString("name"), 48);
             String id = group.optString("id");
+            boolean light = isLight(palette);
             RemoteViews line = new RemoteViews(context.getPackageName(),
-                narrow ? R.layout.widget_quota_row_narrow : R.layout.widget_quota_row);
+                narrow ? (light ? R.layout.widget_quota_row_narrow_light : R.layout.widget_quota_row_narrow)
+                       : (light ? R.layout.widget_quota_row_light : R.layout.widget_quota_row));
             line.setTextViewText(R.id.quota_provider_initial, providerInitial(id, name));
             line.setTextViewText(R.id.quota_provider_name, name);
+            line.setTextColor(R.id.quota_provider_name,
+                themeColor(palette, "foreground", light ? 0xff44443d : 0xffdbd7cc));
             line.setTextColor(R.id.quota_provider_initial, providerColor(id));
             int icon = providerLogo(id);
             if (icon != 0) {
@@ -225,7 +258,8 @@ final class WidgetRenderer {
             JSONObject[] two = new JSONObject[] { quota.left, quota.right };
             for (JSONObject item : two) {
                 RemoteViews meter = new RemoteViews(context.getPackageName(),
-                    narrow ? R.layout.widget_quota_metric_narrow : R.layout.widget_quota_metric);
+                    narrow ? (light ? R.layout.widget_quota_metric_narrow_light : R.layout.widget_quota_metric_narrow)
+                           : (light ? R.layout.widget_quota_metric_light : R.layout.widget_quota_metric));
                 if (item == null) {
                     meter.setViewVisibility(R.id.quota_ring, View.INVISIBLE);
                     meter.setViewVisibility(R.id.quota_label, View.INVISIBLE);
@@ -238,9 +272,18 @@ final class WidgetRenderer {
                     double remaining = Double.isFinite(used) ? 100 - used
                         : Double.isFinite(percentage) ? percentage : Double.NaN;
                     int color = !Double.isFinite(remaining) ? MUTED
-                        : remaining < 20 ? RED : remaining < 50 ? AMBER : GREEN;
-                    meter.setImageViewBitmap(R.id.quota_ring, ring(context, percentage, value, color));
+                        : remaining < 20 ? themeColor(palette, "error", RED)
+                          : remaining < 50 ? themeColor(palette, "warning", AMBER)
+                          : themeColor(palette, "success", GREEN);
+                    meter.setImageViewBitmap(R.id.quota_ring, ring(context, percentage, value, color,
+                        themeColor(palette, "foreground", light ? 0xff44443d : 0xffdbd7cc), light));
                     meter.setTextViewText(R.id.quota_label, compactLabel(item.optString("label")));
+                    meter.setTextColor(R.id.quota_label,
+                        themeColor(palette, "foreground", light ? 0xff44443d : 0xffdbd7cc));
+                    meter.setTextColor(R.id.quota_reset,
+                        themeColor(palette, "muted", light ? 0xff696960 : 0xff89867c));
+                    meter.setTextColor(R.id.quota_detail,
+                        themeColor(palette, "primary", light ? 0xffb35017 : BRAND));
                     String reset = resetLabel(item.optLong("resetAt", 0));
                     if (reset.isEmpty()) meter.setViewVisibility(R.id.quota_reset, View.GONE);
                     else meter.setTextViewText(R.id.quota_reset, reset);
@@ -275,7 +318,8 @@ final class WidgetRenderer {
         return label.length() > 28 ? label.substring(0, 27) + "…" : label;
     }
 
-    private static Bitmap ring(Context context, double percent, String value, int foreground) {
+    private static Bitmap ring(Context context, double percent, String value,
+                               int foreground, int textColor, boolean light) {
         float density = context.getResources().getDisplayMetrics().density;
         float sp = context.getResources().getDisplayMetrics().scaledDensity;
         // Avoid large RemoteViews parcels when all providers fit on one page.
@@ -288,7 +332,7 @@ final class WidgetRenderer {
         float radius = center - stroke / 2f - 1.5f * density;
 
         Paint track = new Paint(Paint.ANTI_ALIAS_FLAG);
-        track.setColor(Color.rgb(71, 73, 83));
+        track.setColor(light ? 0xffcfcbc5 : 0xff3d3a37);
         track.setStyle(Paint.Style.STROKE);
         track.setStrokeWidth(stroke);
         canvas.drawCircle(center, center, radius, track);
@@ -304,7 +348,7 @@ final class WidgetRenderer {
         }
         Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
         text.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
-        text.setColor(FG);
+        text.setColor(textColor);
         String number = clean(value, 12);
         if (number.endsWith("%") && number.length() > 5) number = number.substring(0, 4) + "%";
         float font = (number.length() > 5 ? 15f : number.length() > 4 ? 18f : 19f) * sp;
@@ -361,17 +405,22 @@ final class WidgetRenderer {
     }
 
     private static void sessionRows(Context context, RemoteViews root, JSONArray sessions,
-                                    int widgetId, int heightDp) {
+                                    int widgetId, int heightDp, JSONObject palette) {
         int maxRows = Math.min(6, Math.max(2, (heightDp - 92) / 78));
         root.setTextViewText(R.id.widget_subtitle,
             Math.min(maxRows, sessions.length()) + "/" + sessions.length());
         for (int i = 0; i < Math.min(maxRows, sessions.length()); i++) {
             JSONObject item = sessions.optJSONObject(i);
             if (item == null) continue;
-            RemoteViews row = new RemoteViews(context.getPackageName(), R.layout.widget_session_row);
+            boolean light = isLight(palette);
+            RemoteViews row = new RemoteViews(context.getPackageName(),
+                light ? R.layout.widget_session_row_light : R.layout.widget_session_row);
             String status = item.optString("status", "Recent");
-            int color = status.equals("Running") ? BLUE : status.equals("Retrying") ? AMBER
-                : status.equals("Done") ? GREEN : status.equals("Failed") ? RED : MUTED;
+            int color = status.equals("Running") ? themeColor(palette, "info", BLUE)
+                : status.equals("Retrying") ? themeColor(palette, "warning", AMBER)
+                : status.equals("Done") ? themeColor(palette, "success", GREEN)
+                : status.equals("Failed") ? themeColor(palette, "error", RED)
+                : themeColor(palette, "muted", MUTED);
             String mark = status.equals("Running") ? "● " : status.equals("Retrying") ? "↻ "
                 : status.equals("Done") ? "✓ " : status.equals("Failed") ? "× " : "◷ ";
             row.setTextViewText(R.id.widget_session_badge, mark + status);
@@ -379,15 +428,22 @@ final class WidgetRenderer {
             // Color always means status, never a random per-project hash.
             row.setInt(R.id.widget_session_accent, "setBackgroundColor", color);
             row.setTextViewText(R.id.widget_session_name, clean(item.optString("name"), 90));
+            row.setTextColor(R.id.widget_session_name,
+                themeColor(palette, "foreground", light ? 0xff44443d : 0xffdbd7cc));
 
             String project = clean(item.optString("project"), 40);
             row.setTextViewText(R.id.widget_session_project,
                 project.isEmpty() ? "Project not set" : "▣  " + project);
-            row.setTextColor(R.id.widget_session_project, MUTED);
+            // Brand orange is intentionally reserved for the project and
+            // action; activity badges independently use semantic status colors.
+            row.setTextColor(R.id.widget_session_project,
+                themeColor(palette, "primary", light ? 0xffb35017 : BRAND));
             String agent = clean(item.optString("agent"), 20);
             if (!agent.isEmpty()) {
                 row.setViewVisibility(R.id.widget_session_agent, View.VISIBLE);
                 row.setTextViewText(R.id.widget_session_agent, agent);
+                row.setTextColor(R.id.widget_session_agent,
+                    themeColor(palette, "primary", light ? 0xffb35017 : BRAND));
             }
             String github = clean(item.optString("github"), 52);
             String branch = clean(item.optString("branch"), 52);
@@ -396,10 +452,13 @@ final class WidgetRenderer {
                 if (!github.isEmpty()) {
                     row.setViewVisibility(R.id.widget_session_github, View.VISIBLE);
                     row.setTextViewText(R.id.widget_session_github, "GH  " + github);
+                    row.setTextColor(R.id.widget_session_github,
+                        themeColor(palette, "info", light ? 0xff2c6ebd : 0xff479fe6));
                 }
                 if (!branch.isEmpty()) {
                     row.setViewVisibility(R.id.widget_session_branch, View.VISIBLE);
                     row.setTextViewText(R.id.widget_session_branch, "⑂  " + branch);
+                    row.setTextColor(R.id.widget_session_branch, light ? 0xff147e70 : BRANCH);
                 }
             }
 

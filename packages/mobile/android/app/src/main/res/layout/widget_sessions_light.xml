@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="@drawable/widget_background_light"
+    android:padding="12dp">
+    <LinearLayout android:id="@+id/widget_header"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center_vertical" android:orientation="horizontal"
+        android:paddingBottom="7dp">
+        <ImageView android:layout_width="30dp" android:layout_height="30dp"
+            android:src="@mipmap/ic_launcher_round" android:contentDescription="OpenChamber"/>
+        <LinearLayout android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="wrap_content" android:orientation="vertical"
+            android:layout_marginLeft="7dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:id="@+id/widget_brand" android:text="OpenChamber" android:textStyle="bold"
+                android:textColor="#44443d" android:textSize="14sp"/>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:id="@+id/widget_section_label" android:text="SESSIONS" android:textStyle="bold"
+                android:letterSpacing="0.11" android:textColor="#b35017" android:textSize="10sp"/>
+        </LinearLayout>
+        <TextView android:id="@+id/widget_subtitle"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:textColor="#696960" android:textSize="11sp"/>
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_rows"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical"/>
+    <LinearLayout android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1" android:orientation="vertical"/>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical"
+        android:paddingTop="7dp">
+        <TextView android:id="@+id/widget_timestamp"
+            android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="wrap_content" android:text="Not synced"
+            android:textColor="#696960" android:textSize="10sp"/>
+        <TextView android:id="@+id/widget_new_session"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:paddingLeft="13dp" android:paddingRight="13dp"
+            android:paddingTop="9dp" android:paddingBottom="9dp"
+            android:background="@drawable/widget_new_button_light"
+            android:text="+ New session" android:textStyle="bold"
+            android:textSize="13sp" android:textColor="#ffffff"/>
+    </LinearLayout>
+</LinearLayout>

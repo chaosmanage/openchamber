@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="@drawable/widget_background_light"
+    android:padding="12dp">
+    <LinearLayout android:id="@+id/widget_header"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center_vertical" android:orientation="horizontal"
+        android:paddingBottom="7dp">
+        <ImageView android:layout_width="30dp" android:layout_height="30dp"
+            android:src="@mipmap/ic_launcher_round" android:contentDescription="OpenChamber"/>
+        <LinearLayout android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="wrap_content" android:orientation="vertical"
+            android:layout_marginLeft="7dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:id="@+id/widget_brand" android:text="OpenChamber" android:textColor="#44443d"
+                android:textStyle="bold" android:textSize="14sp"/>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:id="@+id/widget_section_label" android:text="USAGE" android:textColor="#b35017"
+                android:letterSpacing="0.11" android:textStyle="bold" android:textSize="10sp"/>
+        </LinearLayout>
+        <TextView android:id="@+id/widget_subtitle"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:textColor="#696960" android:textSize="11sp"
+            android:gravity="center_vertical" android:maxLines="1"/>
+        <TextView android:id="@+id/widget_page_next"
+            android:layout_width="33dp" android:layout_height="34dp"
+            android:gravity="center" android:visibility="gone"
+            android:text="›" android:textSize="26sp" android:textColor="#b35017"
+            android:contentDescription="Next providers"/>
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_rows"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical"/>
+    <LinearLayout android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1" android:orientation="vertical"/>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical"
+        android:paddingTop="4dp">
+        <TextView android:id="@+id/widget_timestamp"
+            android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="wrap_content" android:text="Not synced"
+            android:textColor="#696960" android:textSize="10sp"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Tap to open" android:textSize="10sp" android:textColor="#696960"/>
+    </LinearLayout>
+</LinearLayout>

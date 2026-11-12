@@ -22,7 +22,7 @@
                 android:layout_width="0dp" android:layout_weight="1"
                 android:layout_height="wrap_content" android:layout_marginLeft="5dp"
                 android:ellipsize="end" android:maxLines="2"
-                android:textColor="#F1F1F2" android:textSize="12sp"
+                android:textColor="#dbd7cc" android:textSize="12sp"
                 android:fontFamily="sans-serif-condensed" android:textStyle="bold"/>
         </LinearLayout>
         <TextView android:id="@+id/quota_provider_extra"

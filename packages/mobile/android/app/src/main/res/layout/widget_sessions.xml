@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
     android:layout_width="match_parent" android:layout_height="match_parent"
     android:orientation="vertical" android:background="@drawable/widget_background"
     android:padding="12dp">
@@ -13,15 +14,15 @@
             android:layout_height="wrap_content" android:orientation="vertical"
             android:layout_marginLeft="7dp">
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="OpenChamber" android:textStyle="bold"
-                android:textColor="#F1F1F2" android:textSize="14sp"/>
+                android:id="@+id/widget_brand" android:text="OpenChamber" android:textStyle="bold"
+                android:textColor="#dbd7cc" android:textSize="14sp"/>
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="SESSIONS" android:textStyle="bold"
-                android:letterSpacing="0.11" android:textColor="#AC9DBE" android:textSize="10sp"/>
+                android:id="@+id/widget_section_label" android:text="SESSIONS" android:textStyle="bold"
+                android:letterSpacing="0.11" android:textColor="#da7c47" android:textSize="10sp"/>
         </LinearLayout>
         <TextView android:id="@+id/widget_subtitle"
             android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:textColor="#AFB0BA" android:textSize="11sp"/>
+            android:textColor="#89867c" android:textSize="11sp"/>
     </LinearLayout>
     <LinearLayout android:id="@+id/widget_rows"
         android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -33,13 +34,13 @@
         <TextView android:id="@+id/widget_timestamp"
             android:layout_width="0dp" android:layout_weight="1"
             android:layout_height="wrap_content" android:text="Not synced"
-            android:textColor="#9294A0" android:textSize="10sp"/>
+            android:textColor="#89867c" android:textSize="10sp"/>
         <TextView android:id="@+id/widget_new_session"
             android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:paddingLeft="13dp" android:paddingRight="13dp"
             android:paddingTop="9dp" android:paddingBottom="9dp"
             android:background="@drawable/widget_new_button"
             android:text="+ New session" android:textStyle="bold"
-            android:textSize="13sp" android:textColor="#FFFFFF"/>
+            android:textSize="13sp" android:textColor="#120f0e"/>
     </LinearLayout>
 </LinearLayout>
