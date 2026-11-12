@@ -80,9 +80,11 @@ final class WidgetRenderer {
             updated.isEmpty() ? "Not synced" : "Synced " + updated);
         if (usage) {
             String mode = "used".equals(data.optString("mode")) ? "used" : "remaining";
-            view.setTextViewText(R.id.widget_subtitle, mode);
+            // usageRows owns the compact mode / page indicator.
+            if (count == 0) view.setTextViewText(R.id.widget_subtitle, mode);
         } else {
-            view.setTextViewText(R.id.widget_subtitle, count + " total");
+            // sessionRows owns the visible / total indicator.
+            if (count == 0) view.setTextViewText(R.id.widget_subtitle, "0 sessions");
             view.setOnClickPendingIntent(R.id.widget_new_session,
                 open(context, "openchamber://new", widgetId * 1000 + 99));
         }
@@ -147,7 +149,8 @@ final class WidgetRenderer {
             .getInt("usage_page_" + widgetId, 0);
         int page = Math.floorMod(storedPage, pages.size());
         if (pages.size() > 1) {
-            root.setTextViewText(R.id.widget_subtitle, (page + 1) + "/" + pages.size());
+            root.setTextViewText(R.id.widget_subtitle,
+                (page + 1) + "/" + pages.size());
             root.setViewVisibility(R.id.widget_page_next, View.VISIBLE);
             Intent intent = new Intent(context, UsageWidgetProvider.class);
             intent.setAction(NEXT_USAGE_ACTION);
@@ -157,6 +160,7 @@ final class WidgetRenderer {
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         } else {
             root.setViewVisibility(R.id.widget_page_next, View.GONE);
+            root.setTextViewText(R.id.widget_subtitle, "Quota remaining");
         }
 
         int[] bounds = pages.get(page);
