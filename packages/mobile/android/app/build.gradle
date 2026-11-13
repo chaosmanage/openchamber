@@ -34,6 +34,10 @@ android {
         }
     }
     buildTypes {
+        debug {
+            // The fork-only preview APK installs beside the official app.
+            applicationIdSuffix ".previewtest"
+        }
         release {
             if (hasCiSigning) {
                 signingConfig signingConfigs.release
