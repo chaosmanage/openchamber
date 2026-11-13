@@ -32,7 +32,11 @@ jobs:
         run: bun run lint:mobile
 
       - name: Build Android debug APK
-        run: bun run mobile:build:android:debug
+        run: |
+          # This test-only application ID is not a registered Firebase client.
+          # Omit its Google Services config; push notifications are out of scope.
+          rm packages/mobile/android/app/google-services.json
+          bun run mobile:build:android:debug
 
       - name: Upload Android debug APK
         uses: actions/upload-artifact@v4
